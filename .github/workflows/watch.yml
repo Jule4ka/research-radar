@@ -1,0 +1,58 @@
+name: Research Radar
+
+on:
+  schedule:
+    # Tuesdays and Fridays at 07:00 UTC (a couple of times a week).
+    - cron: "0 7 * * 2,5"
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+
+permissions:
+  contents: write           # commit the updated dedupe state
+  issues: write             # open the review issue
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run radar
+        env:
+          # Optional, only if you add the secret. Enables Claude-polished drafts.
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional polite-pool contact; set as a repo variable if you want it.
+          OPENALEX_MAILTO: ${{ vars.OPENALEX_MAILTO }}
+        run: python -m radar.main
+
+      - name: Open review issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if grep -q "_No new papers this run._" state/latest_report.md; then
+            echo "Nothing new; skipping issue."
+          else
+            gh label create radar --color 5319e7 --force >/dev/null 2>&1 || true
+            gh issue create \
+              --title "Research Radar — $(date -u +%Y-%m-%d)" \
+              --body-file state/latest_report.md \
+              --label radar
+          fi
+
+      - name: Commit updated state
+        run: |
+          git config user.name "research-radar[bot]"
+          git config user.email "noreply@users.noreply.github.com"
+          git add state/seen.json
+          if git diff --cached --quiet; then
+            echo "No state change to commit."
+          else
+            git commit -m "radar: update seen state"
+            git push
+          fi
