@@ -1,11 +1,12 @@
 """Orchestrate one Research Radar run.
 
-  fetch each stream -> drop seen ids -> score -> rank -> draft top N
-  -> render report -> mark seen -> save state.
+  fetch each stream -> drop seen ids -> score -> multi-match bonus -> rank
+  -> draft top N -> render report -> (optionally download) -> mark seen -> save.
 
 Flags:
   --dry-run    do everything except marking papers as seen (safe to re-run)
-  --download   also save open-access PDFs (score >= DOWNLOAD_MIN_SCORE) locally
+  --download   also save open-access PDFs locally (see config DOWNLOAD_* knobs)
+  --canon      build the most-cited reading list instead (see canon.py)
 """
 
 from __future__ import annotations
@@ -61,16 +62,14 @@ def run(dry_run: bool = False, download: bool = False) -> str:
     # Highest score first, then newest.
     scored.sort(key=lambda p: (p.score, p.date), reverse=True)
 
-    # Draft the highest-quality papers first (scored is already best-first),
-    # but cap how many come from any single stream so one busy topic can't take
-    # every slot.
-    PER_STREAM_CAP = 2
+    # Draft the highest-quality papers first (scored is already best-first), but
+    # cap how many come from any one stream so a busy topic can't take every slot.
     top: list[Paper] = []
     per_stream: dict[str, int] = {}
     for p in scored:
         if len(top) >= config.MAX_DRAFTS:
             break
-        if per_stream.get(p.stream, 0) >= PER_STREAM_CAP:
+        if per_stream.get(p.stream, 0) >= config.PER_STREAM_CAP:
             continue
         top.append(p)
         per_stream[p.stream] = per_stream.get(p.stream, 0) + 1
@@ -87,7 +86,7 @@ def run(dry_run: bool = False, download: bool = False) -> str:
                              config.DOWNLOAD_PREPRINT_MIN_SCORE,
                              config.PREPRINT_TOPICS, config.PREPRINT_STREAMS)
         print(f"[radar] downloaded {len(got)} open-access PDF(s) "
-              f"(score >= {config.DOWNLOAD_MIN_SCORE}) to {config.DOWNLOAD_DIR}/")
+              f"to {config.DOWNLOAD_DIR}/")
 
     drafts = [(p, drafter.make_draft(p)) for p in top]
     markdown = deliver.render(drafts, rest)

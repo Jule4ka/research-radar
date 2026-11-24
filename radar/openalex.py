@@ -35,7 +35,6 @@ class Paper:
     type: str = ""             # OpenAlex work type (article, preprint, editorial…)
     is_oa: bool = False        # open access?
     oa_status: str = ""        # gold / green / hybrid / bronze / closed
-    oa_url: str = ""           # free full-text url, when OA
     topic: str = ""            # the paper's own primary OpenAlex topic (name)
     topic_id: str = ""         # that topic's OpenAlex id, e.g. "T11147"
     topic_score: float = 0.0   # how confidently it fits that topic (0..1)
@@ -139,7 +138,6 @@ def fetch_stream(stream, lookback_days: int | None, per_page: int,
             type=w.get("type") or "",
             is_oa=bool(oa.get("is_oa")),
             oa_status=oa.get("oa_status") or "",
-            oa_url=oa.get("oa_url") or "",
             topic=(topic.get("display_name") or "") if topic else "",
             topic_id=((topic.get("id") or "").rsplit("/", 1)[-1]) if topic else "",
             topic_score=float(topic.get("score") or 0.0) if topic else 0.0,

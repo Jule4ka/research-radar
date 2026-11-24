@@ -19,7 +19,7 @@ from datetime import date
 from pathlib import Path
 
 from . import config
-from .deliver import _access, _authors, _cell, _doi
+from .md import access, authors, cell, doi
 from .openalex import Paper, fetch_stream
 
 OUT = Path(__file__).resolve().parent.parent / config.CANON_OUT
@@ -52,8 +52,8 @@ def _canon_rows(papers: list[Paper]) -> list[str]:
     for p in papers:
         rows.append(
             f"| {p.cited_by_count} | {_year(p) or '—'} "
-            f"| [{_cell(p.title)}]({p.url}) | {_cell(_authors(p))} "
-            f"| {_cell(p.venue) or '—'} | {_access(p)} | {_doi(p)} |"
+            f"| [{cell(p.title)}]({p.url}) | {cell(authors(p))} "
+            f"| {cell(p.venue) or '—'} | {access(p)} | {doi(p)} |"
         )
     return rows
 
@@ -64,8 +64,8 @@ def _rising_rows(papers: list[Paper]) -> list[str]:
     for p in papers:
         rows.append(
             f"| {_per_year(p):.1f} | {p.cited_by_count} | {_year(p) or '—'} "
-            f"| [{_cell(p.title)}]({p.url}) | {_cell(_authors(p))} "
-            f"| {_cell(p.venue) or '—'} | {_access(p)} | {_doi(p)} |"
+            f"| [{cell(p.title)}]({p.url}) | {cell(authors(p))} "
+            f"| {cell(p.venue) or '—'} | {access(p)} | {doi(p)} |"
         )
     return rows
 

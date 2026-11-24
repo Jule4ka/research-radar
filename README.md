@@ -28,8 +28,7 @@ radar/main.py  — orchestrates one run:
                 a paper caught by several streams is kept once)
   4. pick      choose up to MAX_DRAFTS (3), spread across streams
                so one busy topic can't crowd out the others
-  5. draft     turn each pick into a LinkedIn post                 → drafter.py
-               (plain template, or Claude-polished if a key is set)
+  5. draft     turn each pick into a LinkedIn post template       → drafter.py
   6. render    write everything to state/latest_report.md         → deliver.py
                (the picks as drafts + the rest as a digest list)
   7. save      mark the reported ids as seen (skipped on --dry-run)→ store.py
@@ -292,26 +291,27 @@ research side.
 research-radar/
 ├── radar/                  the Python package (one job per file)
 │   ├── config.py           WHAT to watch: favourites, author watchlists, the
-│   │                       TOPICS dict, and knobs (LOOKBACK_DAYS, MIN_SCORE…)
+│   │                       TOPICS dict, and all the tuning knobs
 │   ├── openalex.py         HOW to fetch: thin OpenAlex /works client;
 │   │                       builds each query and normalises results into Paper
-│   ├── relevance.py        HOW to score: keyword scoring + the require filter;
-│   │                       floors author/topic streams so on-target papers pass
-│   ├── drafter.py          HOW to write: Paper → LinkedIn post (template, or
-│   │                       Claude-polished when ANTHROPIC_API_KEY is set)
+│   ├── relevance.py        HOW to score: metadata-quality scoring + require filter
+│   ├── drafter.py          HOW to write: Paper → LinkedIn post template
+│   ├── md.py               shared Markdown-cell helpers (used by the renderers)
 │   ├── deliver.py          HOW to present: render drafts + digest to Markdown
-│   │                       and write state/latest_report.md
+│   ├── canon.py            the --canon reading list (most-cited papers)
+│   ├── download.py         the --download open-access PDF fetch
 │   ├── store.py            MEMORY: the seen.json dedupe store (is_new / mark)
-│   └── main.py             the pipeline that ties the six together
+│   └── main.py             the pipeline + CLI that ties it together
 │
-├── state/                  run output + memory (committed so it persists)
-│   ├── seen.json           work ids already reported (the dedupe ledger)
-│   └── latest_report.md    the most recent run's drafts + digest
+├── state/                  run output + memory
+│   ├── seen.json           work ids already reported (committed dedupe ledger)
+│   ├── latest_report.md    the most recent run's drafts + digest (gitignored)
+│   └── reading_list.md     the --canon output (gitignored)
 │
 ├── .github/workflows/
 │   └── watch.yml           the scheduled unattended run (fetch → issue → commit)
 │
-├── requirements.txt        requests (needed) + anthropic (optional, for drafts)
+├── requirements.txt        just `requests`
 └── README.md
 ```
 
@@ -376,12 +376,9 @@ issue with the digest as usual.
 2. The workflow in `.github/workflows/watch.yml` runs automatically on the cron
    schedule, and you can trigger it any time from the **Actions** tab
    ("Run workflow"). It uses the built-in `GITHUB_TOKEN` — no setup needed.
-3. **Optional — nicer drafts:** add a repo secret `ANTHROPIC_API_KEY` to have
-   Claude write the posts in a more natural voice. Without it, a clean template
-   is used.
-4. **Optional:** add a repo *variable* `OPENALEX_MAILTO` (an address you choose)
+3. **Optional:** add a repo *variable* `OPENALEX_MAILTO` (an address you choose)
    to join OpenAlex's faster "polite pool".
-5. **Recommended — your own OpenAlex budget:** add a repo *secret*
+4. **Recommended — your own OpenAlex budget:** add a repo *secret*
    `OPENALEX_API_KEY`. Without a key, requests share a small free budget tied to
    your network's IP address (and can hit "Rate limit exceeded" if that pool is
    spent); a personal key is free and has its own **$1/day** budget. Get one at
@@ -409,7 +406,7 @@ issue with the digest as usual.
 - `CANON_TOPIC_IDS` / `CANON_PER_TOPIC` / `RISING_PER_TOPIC` / `RISING_SINCE_YEARS`
   — which topics the `--canon` reading list covers and how many papers each list
   shows (see [Reading list](#reading-list--most-cited-papers-impact-not-freshness)).
-- `boost` / `require` keyword lists per stream in `config.py`.
+- `require` — optional per-stream noise filter (a phrase that must appear).
 - Cron schedule — edit the `cron:` line in `.github/workflows/watch.yml`.
   It currently runs **Mon/Wed/Fri at 07:00 UTC** (`0 7 * * 1,3,5`); change the
   day field (`1,3,5`) to pick other days — e.g. `2,5` for Tue/Fri.

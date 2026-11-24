@@ -106,8 +106,3 @@ def assess(paper: Paper, stream: Stream) -> tuple[int, str]:
         notes.append("↓ lower priority")
 
     return score, " · ".join(notes)
-
-
-def score(paper: Paper, stream: Stream) -> int:
-    """Backwards-compatible: just the number."""
-    return assess(paper, stream)[0]

@@ -10,6 +10,7 @@ from datetime import date
 from pathlib import Path
 
 from . import config
+from .md import access, authors, cell, doi
 from .openalex import Paper
 
 OUT = Path(__file__).resolve().parent.parent / "state" / "latest_report.md"
@@ -22,31 +23,6 @@ _STREAM_LABELS = {s.key: s.label for s in config.STREAMS}
 
 def _matched(p: Paper) -> str:
     return _STREAM_LABELS.get(p.stream, p.stream)
-
-
-def _cell(text: str) -> str:
-    """Make a string safe to drop into a Markdown table cell."""
-    return (text or "").replace("|", "\\|").replace("\n", " ").strip()
-
-
-def _authors(p: Paper, n: int = 3) -> str:
-    shown = ", ".join(p.authors[:n])
-    return shown + (" et al." if len(p.authors) > n else "")
-
-
-def _access(p: Paper) -> str:
-    if p.is_oa:
-        label = p.oa_status or "open"
-        access = f"🔓 {label}"
-    else:
-        access = "🔒 closed"
-    if p.local_path:
-        access += f" · [📥 saved]({p.local_path})"
-    return access
-
-
-def _doi(p: Paper) -> str:
-    return f"[{_cell(p.doi)}]({p.doi_url})" if p.doi else "—"
 
 
 def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
@@ -62,9 +38,8 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
     lines.append("")
 
     for i, (paper, text) in enumerate(drafts, 1):
-        access = _access(paper)
-        topic = f" · {_cell(paper.topic)}" if paper.topic else ""
-        matched = f" · {_cell(_matched(paper))}" if paper.stream else ""
+        topic = f" · {cell(paper.topic)}" if paper.topic else ""
+        matched = f" · {cell(_matched(paper))}" if paper.stream else ""
         caught = paper.matched or f"From your watchlist: {_matched(paper)}."
         lines += [
             f"## ✍️ Draft {i} — score {paper.score}{matched}",
@@ -77,7 +52,7 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
             text,
             "```",
             "",
-            f"<sub>{paper.date} · {access} · {_cell(paper.venue)}{topic}"
+            f"<sub>{paper.date} · {access(paper)} · {cell(paper.venue)}{topic}"
             + (f" · doi:{paper.doi}" if paper.doi else "")
             + f" · [link]({paper.url})</sub>",
             "",
@@ -97,10 +72,10 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
         ]
         for p in shown:
             lines.append(
-                f"| {p.date} | {_access(p)} | {p.score} "
-                f"| [{_cell(p.title)}]({p.url}) | {_cell(_authors(p))} "
-                f"| {_cell(p.matched) or '—'} "
-                f"| {_cell(p.topic) or '—'} | {_doi(p)} | {_cell(p.why)} |"
+                f"| {p.date} | {access(p)} | {p.score} "
+                f"| [{cell(p.title)}]({p.url}) | {cell(authors(p))} "
+                f"| {cell(p.matched) or '—'} "
+                f"| {cell(p.topic) or '—'} | {doi(p)} | {cell(p.why)} |"
             )
         lines.append("")
         if hidden > 0:

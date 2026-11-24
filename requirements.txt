@@ -1,3 +1,1 @@
 requests>=2.31
-# Optional: enables Claude-polished drafts when ANTHROPIC_API_KEY is set.
-anthropic>=0.40

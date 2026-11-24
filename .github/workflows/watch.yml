@@ -25,11 +25,9 @@ jobs:
 
       - name: Run radar
         env:
-          # Optional, only if you add the secret. Enables Claude-polished drafts.
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Optional polite-pool contact; set as a repo variable if you want it.
           OPENALEX_MAILTO: ${{ vars.OPENALEX_MAILTO }}
-          # Optional personal OpenAlex key (own budget, not the shared IP pool).
+          # Personal OpenAlex key (own budget, not the shared IP pool).
           OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
         run: python -m radar.main
 

@@ -31,6 +31,3 @@ class SeenStore:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         payload = {"updated": date.today().isoformat(), "seen": self._seen}
         self.path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-    def __len__(self) -> int:
-        return len(self._seen)
