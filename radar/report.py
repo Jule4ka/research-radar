@@ -59,12 +59,6 @@ DEFAULT_TAGS = "#Research #AcademicResearch #OpenAlex"
 HASHTAGS = {
     "conceptual_modelling": "#ConceptualModeling #DataModeling #Ontology",
     "cognitive_warfare": "#CognitiveWarfare #InformationWarfare #CognitiveSecurity",
-    "favourites": "#Research #KnowledgeGraphs #Ontology",
-    "cogwar_people": "#CognitiveWarfare #InformationWarfare #CognitiveSecurity",
-    "russia_people": "#RussiaStudies #HybridWarfare #StrategicStudies",
-    "disinfo_people": "#Disinformation #InformationIntegrity #MediaLiteracy",
-    "onto_people": "#Ontology #KnowledgeGraph #SemanticWeb",
-    "complexity_people": "#ComplexSystems #ComplexityScience #ComputationalSocialScience",
     "topic_T10215": "#SemanticWeb #KnowledgeGraph #LinkedData",
     "topic_T11450": "#ModelDrivenEngineering #MDE #ConceptualModeling",
     "topic_T11147": "#Disinformation #InformationIntegrity #MediaLiteracy",

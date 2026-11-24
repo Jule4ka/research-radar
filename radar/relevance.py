@@ -13,10 +13,8 @@ it. `assess()` returns (score, reason) so the digest can show its working.
 
 from __future__ import annotations
 
-from .config import Stream, LOW_PRIORITY_TOPICS
+from .config import Stream
 from .openalex import Paper
-
-LOW_PRIORITY_PENALTY = 50  # keeps a low-priority topic in the digest, out of drafts
 
 # Document types that are never worth a draft.
 DROP_TYPES = {
@@ -98,11 +96,5 @@ def assess(paper: Paper, stream: Stream) -> tuple[int, str]:
     if paper.is_oa:
         score += OA_BONUS
         notes.append("🔓 open access")
-
-    # De-prioritise "watch only" topics so they stay in the digest but rarely
-    # beat higher-priority work for a draft slot.
-    if stream.key.startswith("topic_") and stream.key[6:] in LOW_PRIORITY_TOPICS:
-        score -= LOW_PRIORITY_PENALTY
-        notes.append("↓ lower priority")
 
     return score, " · ".join(notes)

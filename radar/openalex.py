@@ -14,7 +14,7 @@ from datetime import date, timedelta
 import requests
 
 API = "https://api.openalex.org/works"
-UA = "research-radar/0.1 (https://github.com/)"
+UA = "research-radar/0.1 (personal research tool)"
 
 
 @dataclass

@@ -149,16 +149,22 @@ def run(dry_run: bool = False, download: bool = False) -> str:
 
     scored = sorted(best.values(), key=lambda p: (p.score, p.date), reverse=True)
 
-    # Draft the best first, capped per stream so one busy topic can't sweep.
+    # Draft the best of EACH kind (keywords / authors / topics), not the best
+    # overall, so a broad topic can't crowd out your people or key terms: up to
+    # DRAFTS_PER_KIND per kind, and within topics PER_TOPIC_CAP spreads the picks
+    # across different topics instead of one busy one.
     top: list[Paper] = []
-    per_stream: dict[str, int] = {}
+    per_kind: dict[str, int] = {}
+    per_topic: dict[str, int] = {}
     for p in scored:
-        if len(top) >= config.MAX_DRAFTS:
-            break
-        if per_stream.get(p.stream, 0) >= config.PER_STREAM_CAP:
+        kind = config.stream_kind(p.stream)
+        if per_kind.get(kind, 0) >= config.DRAFTS_PER_KIND:
+            continue
+        if kind == "topic" and per_topic.get(p.stream, 0) >= config.PER_TOPIC_CAP:
             continue
         top.append(p)
-        per_stream[p.stream] = per_stream.get(p.stream, 0) + 1
+        per_kind[kind] = per_kind.get(kind, 0) + 1
+        per_topic[p.stream] = per_topic.get(p.stream, 0) + 1
 
     picked = {p.short_id for p in top}
     rest = [p for p in scored if p.short_id not in picked]

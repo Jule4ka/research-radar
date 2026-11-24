@@ -1,11 +1,15 @@
 """Configuration for Research Radar: the watchlists, topics, and tuning knobs.
 
-Each STREAM becomes one OpenAlex /works query, matched by either:
-  - an OpenAlex `filter` fragment (e.g. an author id or topic id), and/or
-  - a `search` string applied to title + abstract (title_and_abstract.search).
+The radar watches three kinds of stream — each STREAM becomes one OpenAlex
+/works query:
 
-`require` is an optional noise filter: if set, at least one phrase must appear in
-the title/abstract or the paper is dropped.
+  1. KEYWORDS — a phrase in the title/abstract (catches anyone who uses it).
+  2. PEOPLE   — your watched researchers, all in ONE query (ids OR'd together).
+  3. TOPICS   — one OpenAlex topic id each.
+
+A stream is matched by an OpenAlex `filter` fragment (an author or topic id)
+and/or a `search` phrase. `require` is an optional noise filter: if set, at
+least one phrase must appear in the title/abstract or the paper is dropped.
 """
 
 from dataclasses import dataclass, field
@@ -20,39 +24,15 @@ class Stream:
     require: list[str] = field(default_factory=list)  # if set, at least one must appear
 
 
-# --- Author watchlists -------------------------------------------------------
-# Following a researcher by OpenAlex author id is the equivalent of a Google
-# Scholar "new articles" alert. Each group below becomes ONE OpenAlex query:
-# the ids are OR'd together with "|". To follow/drop someone, edit the dict.
-# (id -> name is for your reference; only the id is sent to OpenAlex.)
-
-COGWAR_PEOPLE = {
-    "A5027932705": "Bernard Claverie (Bordeaux INP) — NATO cognitive warfare concept",
-    "A5075868467": "Baptiste Prébot — Cognitive Warfare Index, CWDB",
-    "A5138999954": "Maxime Audinet (IRSEM) — Russian influence, RT/Sputnik",
-    "A5071977967": "Maxime Audinet (IRSEM) — second OpenAlex profile",
-}
-
-RUSSIA_PEOPLE = {
-    "A5078972793": "Han Bouwmeester (NL Defence Academy) — maskirovka, reflexive control",
-    "A5005470460": "Dima/Dmitry Adamsky (Reichman) — Russian strategic culture",
-    "A5037734689": "Ofer Fridman (KCL) — Russian 'hybrid warfare'",
-    "A5051215193": "Bettina Renz (Nottingham) — Russian military power",
-    "A5092769843": "Jānis Bērziņš (Latvian NDA) — new generation warfare",
-}
-
-DISINFO_PEOPLE = {
-    "A5047539711": "Thomas Rid (Johns Hopkins SAIS) — active measures",
-    "A5028631384": "Samuel Woolley (Pittsburgh) — computational propaganda",
-    "A5045494255": "Kate Starbird (UW) — participatory disinformation",
-    "A5085545989": "Yevgeniy Golovchenko (Copenhagen) — Russian disinformation",
-    "A5026819080": "Martin Innes (Cardiff) — information operations in Europe",
-    "A5073961643": "Sander van der Linden (Cambridge) — inoculation",
-    "A5017914184": "Stephan Lewandowsky (Bristol/Potsdam) — misinformation psychology",
-}
-
-ONTO_PEOPLE = {
-    # Guizzardi has his own dedicated stream below.
+# --- Watched researchers -----------------------------------------------------
+# One flat list of everyone you follow — no categories. Following a researcher
+# by OpenAlex author id is the equivalent of a Google Scholar "new articles"
+# alert. The whole list becomes ONE OpenAlex query (ids OR'd together).
+# The name/affiliation note is for your reference; only the id is sent.
+# To find an id: https://api.openalex.org/authors?search=Their+Name
+# (OpenAlex allows up to 50 ids OR'd in one filter; you have room to spare.)
+PEOPLE = {
+    "A5065297243": "Giancarlo Guizzardi (Twente) — UFO, OntoUML",
     "A5030998387": "Tiago Prince Sales (Twente) — OntoUML",
     "A5063817933": "João Paulo A. Almeida (UFES) — gUFO",
     "A5053715134": "Nicola Guarino (ISTC-CNR) — DOLCE, OntoClean",
@@ -66,24 +46,30 @@ ONTO_PEOPLE = {
     "A5029130731": "Frank van Harmelen (VU Amsterdam) — knowledge graphs + AI",
     "A5055871472": "Ruben Verborgh (Ghent) — linked data",
     "A5068448434": "Pieter Colpaert (Ghent) — linked data",
-}
-
-COMPLEXITY_PEOPLE = {
-    "A5036034260": "Vítor V. Vasconcelos (UvA) — collective behaviour, complexity",
-    "A5021090586": "Michael (Mike) Lees (UvA) — complex-systems simulation",
-}
-
-# My favourite researchers — a hand-picked list I always want to see.
-# (Guizzardi and Groth also appear in the area watchlists above; OpenAlex and
-# the pipeline de-duplicate, so listing them here too is harmless.)
-FAVOURITE_PEOPLE = {
-    "A5065297243": "Giancarlo Guizzardi (Twente) — UFO, OntoUML",
-    "A5060916131": "Paul A. L. Ducheine (Amsterdam/NLDA) — military law, cyber operations",
-    "A5034924491": "Paul Groth (Amsterdam) — provenance, PROV-O",
     "A5014287041": "Juan Sequeda (data.world) — knowledge graphs, semantic data",
-    "A5079338334": "Lucas Introna (Lancaster) — ethics & phenomenology of information systems",
     "A5075446663": "Frank Nack (Amsterdam) — interactive multimedia, semantic media",
     "A5050801999": "Panos Constantinides — digital innovation, information systems",
+    "A5079338334": "Lucas Introna (Lancaster) — ethics & phenomenology of information systems",
+    "A5060916131": "Paul A. L. Ducheine (Amsterdam/NLDA) — military law, cyber operations",
+    "A5027932705": "Bernard Claverie (Bordeaux INP) — NATO cognitive warfare concept",
+    "A5075868467": "Baptiste Prébot — Cognitive Warfare Index, CWDB",
+    "A5138999954": "Maxime Audinet (IRSEM) — Russian influence, RT/Sputnik",
+    "A5071977967": "Maxime Audinet (IRSEM) — second OpenAlex profile",
+    "A5048734240": "Stefan Soesanto (ETH Zurich) — cyber conflict, information operations",
+    "A5078972793": "Han Bouwmeester (NL Defence Academy) — maskirovka, reflexive control",
+    "A5005470460": "Dima/Dmitry Adamsky (Reichman) — Russian strategic culture",
+    "A5037734689": "Ofer Fridman (KCL) — Russian 'hybrid warfare'",
+    "A5051215193": "Bettina Renz (Nottingham) — Russian military power",
+    "A5092769843": "Jānis Bērziņš (Latvian NDA) — new generation warfare",
+    "A5047539711": "Thomas Rid (Johns Hopkins SAIS) — active measures",
+    "A5028631384": "Samuel Woolley (Pittsburgh) — computational propaganda",
+    "A5045494255": "Kate Starbird (UW) — participatory disinformation",
+    "A5085545989": "Yevgeniy Golovchenko (Copenhagen) — Russian disinformation",
+    "A5026819080": "Martin Innes (Cardiff) — information operations in Europe",
+    "A5073961643": "Sander van der Linden (Cambridge) — inoculation against misinformation",
+    "A5017914184": "Stephan Lewandowsky (Bristol/Potsdam) — misinformation psychology",
+    "A5036034260": "Vítor V. Vasconcelos (UvA) — collective behaviour, complexity",
+    "A5021090586": "Michael (Mike) Lees (UvA) — complex-systems simulation",
 }
 
 
@@ -118,19 +104,9 @@ TOPICS = {
     "T10883": "Ethics and Social Impacts of AI",
     "T11937": "Research Data Management Practices",
     "T11024": "Information Systems Theories and Implementation",
-    "T10242": "Posttraumatic Stress Disorder Research",
     "T12957": "War, Ethics, and Justification",
     "T12888": "Military Strategy and Technology",
-    # You wrote "Phenomenology, Ethics, and Existentialism"; the OpenAlex topic
-    # is actually named "Philosophy, Ethics, and Existentialism".
-    "T12366": "Philosophy, Ethics, and Existentialism",
-    # ("Shaping Societal Transitions" dropped — no matching OpenAlex topic.)
-}
-
-# Topics you still want watched (they appear in the digest) but NOT featured as
-# drafts — their score is penalised so higher-priority work wins the draft slots.
-LOW_PRIORITY_TOPICS = {
-    "T10242",  # Posttraumatic Stress Disorder Research — tangential, watch only
+    "T12366": "Philosophy, Ethics, and Existentialism"
 }
 
 
@@ -139,16 +115,9 @@ def _authors(people: dict[str, str]) -> str:
     return "author.id:" + "|".join(people)
 
 
-# Every watched author in one id -> description map, for explainability.
-WATCHED_AUTHORS: dict[str, str] = {
-    **FAVOURITE_PEOPLE, **COGWAR_PEOPLE, **RUSSIA_PEOPLE,
-    **DISINFO_PEOPLE, **ONTO_PEOPLE, **COMPLEXITY_PEOPLE,
-}
-
-
 def author_name(author_id: str) -> str:
     """Just the person's name from a watchlist entry (drop affiliation/notes)."""
-    desc = WATCHED_AUTHORS.get(author_id, "")
+    desc = PEOPLE.get(author_id, "")
     if not desc:
         return author_id
     return desc.split(" (")[0].split(" — ")[0].strip()
@@ -172,54 +141,38 @@ def capture_reason(paper, stream) -> str:
     return stream.label
 
 
+def stream_kind(stream_key: str) -> str:
+    """Which of the three kinds a stream belongs to: keyword / author / topic."""
+    if stream_key.startswith("topic_"):
+        return "topic"
+    if stream_key == "people":
+        return "author"
+    return "keyword"
+
+
 STREAMS: list[Stream] = [
-    # --- Search streams (title/abstract phrase) -----------------------------
+    # --- 1. Keyword / term searches (a phrase in the title/abstract) --------
     Stream(
         key="conceptual_modelling",
-        label="Conceptual modelling (field)",
+        label="Conceptual modelling (keyword)",
         search="conceptual modeling",
         require=["conceptual model", "conceptual modeling", "conceptual modelling"],
     ),
     Stream(
         key="cognitive_warfare",
-        label="Cognitive warfare",
+        label="Cognitive warfare (keyword)",
         search="cognitive warfare",
     ),
 
-    # --- Researcher watchlists (one query per group; see dicts above) -------
+    # --- 2. Watched researchers (all of PEOPLE in one query) ----------------
     Stream(
-        key="favourites",
-        label="My favourite researchers (watchlist)",
-        filter=_authors(FAVOURITE_PEOPLE),
-    ),
-    Stream(
-        key="cogwar_people",
-        label="Cognitive-warfare researchers (watchlist)",
-        filter=_authors(COGWAR_PEOPLE),
-    ),
-    Stream(
-        key="russia_people",
-        label="Russian strategy & deception researchers (watchlist)",
-        filter=_authors(RUSSIA_PEOPLE),
-    ),
-    Stream(
-        key="disinfo_people",
-        label="Disinformation researchers (watchlist)",
-        filter=_authors(DISINFO_PEOPLE),
-    ),
-    Stream(
-        key="onto_people",
-        label="Ontology & semantic-modelling researchers (watchlist)",
-        filter=_authors(ONTO_PEOPLE),
-    ),
-    Stream(
-        key="complexity_people",
-        label="Complexity-science researchers (watchlist)",
-        filter=_authors(COMPLEXITY_PEOPLE),
+        key="people",
+        label="Watched researchers",
+        filter=_authors(PEOPLE),
     ),
 ]
 
-# --- Topic streams (generated: one per entry in TOPICS) ---------------------
+# --- 3. Topic streams (generated: one per entry in TOPICS) ------------------
 STREAMS += [
     Stream(key=f"topic_{tid}", label=name, filter=f"topics.id:{tid}")
     for tid, name in TOPICS.items()
@@ -239,8 +192,13 @@ MULTI_MATCH_BONUS = 8
 MULTI_MATCH_MAX = 24
 
 # --- Report ------------------------------------------------------------------
-MAX_DRAFTS = 3       # full LinkedIn drafts per run (the rest go in the digest)
-PER_STREAM_CAP = 2   # cap drafts from any one stream, so a busy topic can't sweep
+# Drafts are chosen PER KIND (keywords / authors / topics), not globally, so a
+# broad topic can't crowd out your people or key terms. Up to DRAFTS_PER_KIND
+# full drafts from each kind (so at most 3 kinds × DRAFTS_PER_KIND per run); the
+# rest go in the digest. Within the topic kind, PER_TOPIC_CAP spreads the picks
+# across different topics instead of one busy one.
+DRAFTS_PER_KIND = 3  # full LinkedIn drafts per kind (keywords / authors / topics)
+PER_TOPIC_CAP = 2    # within topics, cap drafts from any single topic
 DIGEST_MAX = 150     # max digest rows (keeps the GitHub issue under its 64k limit)
 
 # --- Downloading PDFs (local `--download` runs only) -------------------------
@@ -263,10 +221,8 @@ PREPRINT_TOPICS = {
     "T12221",   # Cybersecurity and Cyber Warfare      — cognitive warfare
 }
 PREPRINT_STREAMS = {
-    "disinfo_people",         # disinformation
     "conceptual_modelling",   # conceptual models
     "cognitive_warfare",      # cognitive warfare
-    "cogwar_people",          # cognitive warfare
 }
 
 # --- Reading list: most-cited papers (`python -m radar.main --canon`) --------
