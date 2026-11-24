@@ -267,6 +267,25 @@ DOWNLOAD_DIR = "papers"   # folder (relative to the repo root)
 # when it belongs to one of these areas; everywhere else only peer-reviewed work
 # clearing DOWNLOAD_MIN_SCORE is saved. An area matches by the paper's OWN primary
 # topic id (robust to which stream surfaced it) or by the stream that caught it.
+# --- Reading list: most-cited papers (`python -m radar.main --canon`) ---------
+# A separate "impact" view, distinct from the fresh-news flow: for each chosen
+# topic it builds (1) an all-time canon ranked by total citations, and (2) a
+# "rising" list of the last RISING_SINCE_YEARS, ranked by citations-PER-YEAR so
+# newer breakout work isn't buried under older papers. Written to CANON_OUT; not
+# drafted and not deduped (it's a reference doc you regenerate on demand).
+# Keep it to a few core topics. (ids must exist in TOPICS above.)
+CANON_TOPIC_IDS = [
+    "T12221",   # Cybersecurity and Cyber Warfare Studies  (cognitive warfare)
+    "T11147",   # Misinformation and Its Impacts           (disinformation)
+    "T10215",   # Semantic Web and Ontologies              (conceptual models)
+    "T11450",   # Model-Driven Software Engineering        (conceptual models)
+]
+CANON_PER_TOPIC = 10        # all-time most-cited to list per topic
+RISING_PER_TOPIC = 10       # recent most-cited (by citations/year) per topic
+RISING_SINCE_YEARS = 3      # how far back "rising" looks
+CANON_OUT = "state/reading_list.md"
+
+
 DOWNLOAD_PREPRINT_MIN_SCORE = 20   # light junk floor for those preprints
 PREPRINT_TOPICS = {
     "T11147",   # Misinformation and Its Impacts      — disinformation

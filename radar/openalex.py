@@ -42,6 +42,7 @@ class Paper:
     venue_type: str = ""       # journal / conference / repository / book series…
     is_in_doaj: bool = False   # venue indexed in DOAJ (a peer-review signal)
     refs_count: int = 0        # number of works it cites (scholarly substance)
+    cited_by_count: int = 0    # times this work has been cited (impact)
     pdf_url: str = ""          # best free PDF/landing url (OA only)
     local_path: str = ""       # set once the PDF is downloaded locally
 
@@ -80,11 +81,15 @@ def _session() -> requests.Session:
     return s
 
 
-def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
-    """Return papers published within the lookback window for one stream."""
-    since = (date.today() - timedelta(days=lookback_days)).isoformat()
-
-    filters = [f"from_publication_date:{since}"]
+def fetch_stream(stream, lookback_days: int | None, per_page: int,
+                 sort: str = "publication_date:desc") -> list[Paper]:
+    """Query one stream. With lookback_days set, restrict to that recent window
+    (the fresh-news mode); pass None for no date filter (e.g. all-time canon).
+    `sort` is an OpenAlex sort key, e.g. "cited_by_count:desc" for most-cited."""
+    filters = []
+    if lookback_days is not None:
+        since = (date.today() - timedelta(days=lookback_days)).isoformat()
+        filters.append(f"from_publication_date:{since}")
     if stream.filter:
         filters.append(stream.filter)
     if stream.search:
@@ -92,11 +97,11 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
 
     params = {
         "filter": ",".join(filters),
-        "sort": "publication_date:desc",
+        "sort": sort,
         "per-page": per_page,
         "select": ("id,title,publication_date,doi,type,referenced_works_count,"
-                   "authorships,primary_location,best_oa_location,primary_topic,"
-                   "open_access,abstract_inverted_index"),
+                   "cited_by_count,authorships,primary_location,best_oa_location,"
+                   "primary_topic,open_access,abstract_inverted_index"),
     }
 
     sess = _session()
@@ -141,6 +146,7 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
             venue_type=src.get("type") or "",
             is_in_doaj=bool(src.get("is_in_doaj")),
             refs_count=int(w.get("referenced_works_count") or 0),
+            cited_by_count=int(w.get("cited_by_count") or 0),
             pdf_url=(bol.get("pdf_url") or loc.get("pdf_url")
                      or oa.get("oa_url") or ""),
         ))

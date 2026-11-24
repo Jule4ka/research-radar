@@ -109,7 +109,14 @@ def main() -> None:
                     help="don't mark papers as seen (safe to re-run)")
     ap.add_argument("--download", action="store_true",
                     help="save open-access PDFs of top-scoring papers to papers/")
+    ap.add_argument("--canon", action="store_true",
+                    help="build the most-cited reading list (state/reading_list.md) "
+                         "and exit; ignores the fresh-news flow")
     args = ap.parse_args()
+    if args.canon:
+        from . import canon
+        canon.run()
+        return
     run(dry_run=args.dry_run, download=args.download)
 
 

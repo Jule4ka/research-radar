@@ -326,9 +326,27 @@ pip install -r requirements.txt
 python -m radar.main --dry-run    # safe: doesn't update seen-state
 python -m radar.main              # real run: writes state/latest_report.md
 python -m radar.main --download   # also save open-access PDFs to papers/
+python -m radar.main --canon      # build the most-cited reading list
 ```
 
 Open `state/latest_report.md` to see the drafts.
+
+### Reading list — most-cited papers (impact, not freshness)
+
+The main flow answers *"what's new?"*. `--canon` answers a different question —
+*"what does the field actually lean on?"* — and writes a separate
+`state/reading_list.md`. Because these papers already have citations, they're
+ranked by **citations directly** (no birth-time proxies). For each topic in
+`CANON_TOPIC_IDS` it builds two lists:
+
+- **🏛️ All-time canon** — most cited ever: the foundational reading.
+- **📈 Rising** — the last `RISING_SINCE_YEARS` (default 3), ranked by
+  **citations-per-year**, so a fast-climbing recent paper isn't buried under an
+  older one.
+
+It's a reference doc: not drafted, not deduped, regenerate it whenever. Keep
+`CANON_TOPIC_IDS` to a few core topics (ids must exist in `TOPICS`); defaults to
+cyber/cognitive-warfare, misinformation, and the conceptual-modelling topics.
 
 ### Downloading papers to read
 
@@ -388,6 +406,9 @@ issue with the digest as usual.
 - `PREPRINT_TOPICS` / `PREPRINT_STREAMS` / `DOWNLOAD_PREPRINT_MIN_SCORE` — areas
   where preprints are also saved (below the normal bar), and the floor for them.
   Add a topic id or stream key to widen which areas keep early work.
+- `CANON_TOPIC_IDS` / `CANON_PER_TOPIC` / `RISING_PER_TOPIC` / `RISING_SINCE_YEARS`
+  — which topics the `--canon` reading list covers and how many papers each list
+  shows (see [Reading list](#reading-list--most-cited-papers-impact-not-freshness)).
 - `boost` / `require` keyword lists per stream in `config.py`.
 - Cron schedule — edit the `cron:` line in `.github/workflows/watch.yml`.
   It currently runs **Mon/Wed/Fri at 07:00 UTC** (`0 7 * * 1,3,5`); change the
