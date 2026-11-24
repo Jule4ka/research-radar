@@ -14,6 +14,15 @@ from .openalex import Paper
 
 OUT = Path(__file__).resolve().parent.parent / "state" / "latest_report.md"
 
+# stream key -> human label, so a pick can show which watched stream surfaced it
+# (e.g. "Management and Organizational Studies") rather than only OpenAlex's own
+# per-paper primary topic.
+_STREAM_LABELS = {s.key: s.label for s in config.STREAMS}
+
+
+def _matched(p: Paper) -> str:
+    return _STREAM_LABELS.get(p.stream, p.stream)
+
 
 def _cell(text: str) -> str:
     """Make a string safe to drop into a Markdown table cell."""
@@ -55,8 +64,9 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
     for i, (paper, text) in enumerate(drafts, 1):
         access = _access(paper)
         topic = f" · {_cell(paper.topic)}" if paper.topic else ""
+        matched = f" · {_cell(_matched(paper))}" if paper.stream else ""
         lines += [
-            f"## ✍️ Draft {i} — score {paper.score}{topic}",
+            f"## ✍️ Draft {i} — score {paper.score}{matched}",
             "",
             f"> **Why picked:** {paper.why}",
             "",
