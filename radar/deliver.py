@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
+from . import config
 from .openalex import Paper
 
 OUT = Path(__file__).resolve().parent.parent / "state" / "latest_report.md"
@@ -72,19 +73,28 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
         ]
 
     if digest:
+        shown = digest[:config.DIGEST_MAX]
+        hidden = len(digest) - len(shown)
         lines += [
             "## \U0001F4F0 Also new (digest)",
             "",
             "| Date | Access | Score | Title | Authors | Topic | DOI | Why |",
             "|---|---|---|---|---|---|---|---|",
         ]
-        for p in digest:
+        for p in shown:
             lines.append(
                 f"| {p.date} | {_access(p)} | {p.score} "
                 f"| [{_cell(p.title)}]({p.url}) | {_cell(_authors(p))} "
                 f"| {_cell(p.topic) or '—'} | {_doi(p)} | {_cell(p.why)} |"
             )
         lines.append("")
+        if hidden > 0:
+            lines += [
+                f"_…and {hidden} more new paper(s) not shown "
+                f"(digest capped at {config.DIGEST_MAX}, highest score first). "
+                f"Raise `MIN_SCORE` or shorten `LOOKBACK_DAYS` to trim._",
+                "",
+            ]
 
     lines += ["---", "_Paste the drafts you like into LinkedIn, then close this issue._"]
     return "\n".join(lines)

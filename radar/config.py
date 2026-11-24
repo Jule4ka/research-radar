@@ -202,6 +202,12 @@ MIN_SCORE = 1
 # How many full LinkedIn drafts to generate per run. The rest go in a digest list.
 MAX_DRAFTS = 3
 
+# Cap on how many papers the digest table lists (highest score first). Keeps the
+# report readable and the GitHub issue body under its 65,536-character limit on a
+# big run (e.g. a cold start, where every recent paper is "new"). Extra papers
+# are counted but not listed.
+DIGEST_MAX = 150
+
 # Per-page cap when pulling from OpenAlex (newest first).
 PER_PAGE = 50
 
