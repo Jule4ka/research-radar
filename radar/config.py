@@ -204,3 +204,11 @@ MAX_DRAFTS = 3
 
 # Per-page cap when pulling from OpenAlex (newest first).
 PER_PAGE = 50
+
+# --- Downloading PDFs (local `--download` runs only) ------------------------
+# When you run `python -m radar.main --download`, every OPEN-ACCESS paper scoring
+# at least DOWNLOAD_MIN_SCORE is saved to the papers/ folder (gitignored), up to
+# DOWNLOAD_MAX per run. Closed-access papers are never downloaded (just listed).
+DOWNLOAD_MIN_SCORE = 70   # quality bar for the reading pile
+DOWNLOAD_MAX = 50         # safety cap on PDFs per run
+DOWNLOAD_DIR = "papers"   # folder (relative to the repo root)

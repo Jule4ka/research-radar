@@ -39,6 +39,8 @@ class Paper:
     venue_type: str = ""       # journal / conference / repository / book series…
     is_in_doaj: bool = False   # venue indexed in DOAJ (a peer-review signal)
     refs_count: int = 0        # number of works it cites (scholarly substance)
+    pdf_url: str = ""          # best free PDF/landing url (OA only)
+    local_path: str = ""       # set once the PDF is downloaded locally
 
     @property
     def short_id(self) -> str:
@@ -90,7 +92,7 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
         "sort": "publication_date:desc",
         "per-page": per_page,
         "select": ("id,title,publication_date,doi,type,referenced_works_count,"
-                   "authorships,primary_location,primary_topic,"
+                   "authorships,primary_location,best_oa_location,primary_topic,"
                    "open_access,abstract_inverted_index"),
     }
 
@@ -104,6 +106,7 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
         loc = w.get("primary_location") or {}
         src = loc.get("source") or {}
         oa = w.get("open_access") or {}
+        bol = w.get("best_oa_location") or {}
         topic = w.get("primary_topic") or {}
         authors = [
             (a.get("author") or {}).get("display_name", "")
@@ -128,5 +131,7 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
             venue_type=src.get("type") or "",
             is_in_doaj=bool(src.get("is_in_doaj")),
             refs_count=int(w.get("referenced_works_count") or 0),
+            pdf_url=(bol.get("pdf_url") or loc.get("pdf_url")
+                     or oa.get("oa_url") or ""),
         ))
     return papers

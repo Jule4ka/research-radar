@@ -27,8 +27,12 @@ def _authors(p: Paper, n: int = 3) -> str:
 def _access(p: Paper) -> str:
     if p.is_oa:
         label = p.oa_status or "open"
-        return f"🔓 {label}"
-    return "🔒 closed"
+        access = f"🔓 {label}"
+    else:
+        access = "🔒 closed"
+    if p.local_path:
+        access += f" · [📥 saved]({p.local_path})"
+    return access
 
 
 def _doi(p: Paper) -> str:

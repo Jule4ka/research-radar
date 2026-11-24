@@ -4,19 +4,21 @@
   -> render report -> mark seen -> save state.
 
 Flags:
-  --dry-run   do everything except marking papers as seen (safe to re-run)
+  --dry-run    do everything except marking papers as seen (safe to re-run)
+  --download   also save open-access PDFs (score >= DOWNLOAD_MIN_SCORE) locally
 """
 
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from . import config, deliver, drafter, relevance
 from .openalex import Paper, fetch_stream
 from .store import SeenStore
 
 
-def run(dry_run: bool = False) -> str:
+def run(dry_run: bool = False, download: bool = False) -> str:
     store = SeenStore()
 
     # A paper can match several streams (e.g. an ontology author's paper also
@@ -61,6 +63,15 @@ def run(dry_run: bool = False) -> str:
     picked = {p.short_id for p in top}
     rest = [p for p in scored if p.short_id not in picked]
 
+    # Optional: save open-access PDFs of the top-scoring papers locally. This
+    # sets `local_path` on the Paper objects, so the report can link to them.
+    if download:
+        from . import download as dl
+        got = dl.download_oa(scored, Path(config.DOWNLOAD_DIR),
+                             config.DOWNLOAD_MIN_SCORE, config.DOWNLOAD_MAX)
+        print(f"[radar] downloaded {len(got)} open-access PDF(s) "
+              f"(score >= {config.DOWNLOAD_MIN_SCORE}) to {config.DOWNLOAD_DIR}/")
+
     drafts = [(p, drafter.make_draft(p)) for p in top]
     markdown = deliver.render(drafts, rest)
     deliver.write_file(markdown)
@@ -79,8 +90,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Research Radar")
     ap.add_argument("--dry-run", action="store_true",
                     help="don't mark papers as seen (safe to re-run)")
+    ap.add_argument("--download", action="store_true",
+                    help="save open-access PDFs of top-scoring papers to papers/")
     args = ap.parse_args()
-    run(dry_run=args.dry_run)
+    run(dry_run=args.dry_run, download=args.download)
 
 
 if __name__ == "__main__":

@@ -4,3 +4,4 @@ __pycache__/
 venv/
 .env
 state/latest_report.md
+papers/

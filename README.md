@@ -44,6 +44,49 @@ You open the issue on your phone, paste the drafts you like into LinkedIn,
 tweak the one-line `[add your take]`, and close the issue. Papers already
 reported never come back, so each issue is only what's genuinely new.
 
+> **Note:** the radar never *reads* a paper for you. It finds papers and drafts
+> a short blurb from the abstract/metadata — you open and read the ones you want.
+
+## How the search works
+
+"Searching" is just a set of OpenAlex `/works` queries — **one per stream**, run
+every time the radar fires. Each stream (in `radar/config.py`) is one of three
+matcher types:
+
+| Matcher | OpenAlex filter it builds | Means |
+|---|---|---|
+| **Author** (favourites, watchlists) | `author.id:A1\|A2\|…` | new work by any of these people |
+| **Topic** | `topics.id:T10215` | anything OpenAlex classifies under this topic |
+| **Search phrase** | `title_and_abstract.search:cognitive warfare` | these words appear in the title or abstract |
+
+For each stream, `radar/openalex.py` sends **one** request to
+`https://api.openalex.org/works` combining:
+
+- `from_publication_date:<today − LOOKBACK_DAYS>` — only the last 10 days (the
+  "new papers only" part);
+- the stream's matcher (one row above);
+- `sort=publication_date:desc` — newest first;
+- `per-page=50` — cap per stream;
+- `select=…` — only the fields used (title, authors, abstract, DOI, venue, type,
+  open-access status, primary topic, reference count);
+- an `Authorization: Bearer <OPENALEX_API_KEY>` header, so it draws on your own
+  budget.
+
+A concrete example — the "Semantic Web" topic stream becomes:
+
+```
+GET https://api.openalex.org/works
+      ?filter=from_publication_date:2026-11-14,topics.id:T10215
+      &sort=publication_date:desc
+      &per-page=50
+      &select=id,title,publication_date,type,primary_topic,open_access,authorships,...
+```
+
+So one run = **35 of these queries** ("last 10 days matching this stream, newest
+first"). OpenAlex does the finding; everything after — dedupe, scoring, ranking —
+happens locally in Python (`main.py`). No external service judges or reads the
+papers.
+
 ## How papers are ranked
 
 A paper that's only days old has **no citations yet**, so the radar can't rank
@@ -263,11 +306,26 @@ turned into text by `drafter`, and listed by `deliver`.
 
 ```bash
 pip install -r requirements.txt
-python -m radar.main --dry-run   # safe: doesn't update seen-state
-python -m radar.main             # real run: writes state/latest_report.md
+python -m radar.main --dry-run    # safe: doesn't update seen-state
+python -m radar.main              # real run: writes state/latest_report.md
+python -m radar.main --download   # also save open-access PDFs to papers/
 ```
 
 Open `state/latest_report.md` to see the drafts.
+
+### Downloading papers to read
+
+`--download` saves a **local reading pile**: every **open-access** paper scoring
+at least `DOWNLOAD_MIN_SCORE` (default 70) is downloaded to the gitignored
+`papers/` folder — named `DATE__scoreNN__Title__id.pdf` — up to `DOWNLOAD_MAX`
+per run. Closed-access papers are never downloaded (they still appear in the
+digest, marked 🔒). When a link is a landing page rather than a direct PDF, a
+small `.link.txt` is saved instead. Each downloaded paper shows a
+**📥 saved** link in the report.
+
+This is a **local-only** feature: the unattended GitHub Actions run can't keep
+files (its machine is wiped each run), so it never downloads — it just opens the
+issue with the digest as usual.
 
 ## Deploy (GitHub Actions — unattended)
 
@@ -297,6 +355,9 @@ Open `state/latest_report.md` to see the drafts.
   Raise it to keep only serious venues; lower it to catch preprints and more.
 - `LOW_PRIORITY_TOPICS` — topic ids to keep watching but keep *out* of drafts
   (penalised, still shown in the digest).
+- `DOWNLOAD_MIN_SCORE` / `DOWNLOAD_MAX` — quality bar and per-run cap for the
+  open-access PDFs saved by `--download` (see
+  [Downloading papers](#downloading-papers-to-read)).
 - `boost` / `require` keyword lists per stream in `config.py`.
 - Cron schedule — edit the `cron:` line in `.github/workflows/watch.yml`.
   It currently runs **Mon/Wed/Fri at 07:00 UTC** (`0 7 * * 1,3,5`); change the
