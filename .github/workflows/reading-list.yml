@@ -1,0 +1,49 @@
+name: Research Radar — Reading list
+
+on:
+  schedule:
+    # 1st of each month at 07:00 UTC. Citation rankings move slowly, so monthly
+    # is plenty for the "what does the field lean on?" view.
+    - cron: "0 7 1 * *"
+  workflow_dispatch:        # lets you run it by hand from the Actions tab
+
+permissions:
+  issues: write             # open the reading-list issue
+
+jobs:
+  reading-list:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build reading list
+        env:
+          OPENALEX_MAILTO: ${{ vars.OPENALEX_MAILTO }}
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
+        run: python -m radar.main --canon
+
+      - name: Open reading-list issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # GitHub caps an issue body at 65,536 chars. The list is normally well
+          # under that, but truncate here too so a run never fails.
+          body=state/reading_list.md
+          if [ "$(wc -c < "$body")" -gt 64000 ]; then
+            head -c 64000 "$body" > state/_reading_body.md
+            printf '\n\n_Reading list truncated to fit GitHub'"'"'s issue size limit._\n' \
+              >> state/_reading_body.md
+            body=state/_reading_body.md
+          fi
+          gh label create reading-list --color 0e8a16 --force >/dev/null 2>&1 || true
+          gh issue create \
+            --title "Research Radar — Reading list — $(date -u +%Y-%m)" \
+            --body-file "$body" \
+            --label reading-list

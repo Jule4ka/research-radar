@@ -286,7 +286,8 @@ research-radar/
 │   └── reading_list.md     the --canon output (gitignored)
 │
 ├── .github/workflows/
-│   └── watch.yml           the scheduled unattended run (fetch → issue → commit)
+│   ├── watch.yml           the scheduled unattended run (fetch → issue → commit)
+│   └── reading-list.yml    the monthly --canon run (build → issue)
 │
 ├── requirements.txt        just `requests`
 └── README.md
@@ -324,6 +325,10 @@ ranked by **citations directly** (no birth-time proxies). For each topic in
 It's a reference doc: not drafted, not deduped, regenerate it whenever. Keep
 `CANON_TOPIC_IDS` to a few core topics (ids must exist in `TOPICS`); defaults to
 cyber/cognitive-warfare, misinformation, and the conceptual-modelling topics.
+
+GitHub Actions also builds it **monthly** (`.github/workflows/reading-list.yml`,
+1st of the month) and opens an issue with the list — so you get the impact view
+without running anything locally.
 
 ### Downloading papers to read
 
