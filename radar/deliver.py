@@ -14,6 +14,27 @@ from .openalex import Paper
 OUT = Path(__file__).resolve().parent.parent / "state" / "latest_report.md"
 
 
+def _cell(text: str) -> str:
+    """Make a string safe to drop into a Markdown table cell."""
+    return (text or "").replace("|", "\\|").replace("\n", " ").strip()
+
+
+def _authors(p: Paper, n: int = 3) -> str:
+    shown = ", ".join(p.authors[:n])
+    return shown + (" et al." if len(p.authors) > n else "")
+
+
+def _access(p: Paper) -> str:
+    if p.is_oa:
+        label = p.oa_status or "open"
+        return f"🔓 {label}"
+    return "🔒 closed"
+
+
+def _doi(p: Paper) -> str:
+    return f"[{_cell(p.doi)}]({p.doi_url})" if p.doi else "—"
+
+
 def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
     today = date.today().isoformat()
     lines: list[str] = [f"# Research Radar — {today}", ""]
@@ -27,26 +48,38 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
     lines.append("")
 
     for i, (paper, text) in enumerate(drafts, 1):
+        access = _access(paper)
+        topic = f" · {paper.topic}" if paper.topic else ""
         lines += [
-            f"## ✍️ Draft {i} — _{paper.stream}_",
+            f"## ✍️ Draft {i} — score {paper.score}",
+            "",
+            f"> **Why picked:** {paper.why}",
             "",
             "```",
             text,
             "```",
             "",
-            f"<sub>{paper.venue} · {paper.date} · "
-            f"{paper.url}</sub>",
+            f"<sub>{paper.date} · {access} · {_cell(paper.venue)}{topic}"
+            + (f" · doi:{paper.doi}" if paper.doi else "")
+            + f" · [link]({paper.url})</sub>",
             "",
             "---",
             "",
         ]
 
     if digest:
-        lines += ["## \U0001F4F0 Also new (digest)", ""]
+        lines += [
+            "## \U0001F4F0 Also new (digest)",
+            "",
+            "| Date | Access | Score | Title | Authors | Topic | DOI | Why |",
+            "|---|---|---|---|---|---|---|---|",
+        ]
         for p in digest:
-            authors = ", ".join(p.authors[:2]) + (" et al." if len(p.authors) > 2 else "")
-            lines.append(f"- **[{p.stream}]** [{p.title}]({p.url}) "
-                         f"— {authors}, {p.date}")
+            lines.append(
+                f"| {p.date} | {_access(p)} | {p.score} "
+                f"| [{_cell(p.title)}]({p.url}) | {_cell(_authors(p))} "
+                f"| {_cell(p.topic) or '—'} | {_doi(p)} | {_cell(p.why)} |"
+            )
         lines.append("")
 
     lines += ["---", "_Paste the drafts you like into LinkedIn, then close this issue._"]

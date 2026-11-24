@@ -18,9 +18,12 @@ from .store import SeenStore
 
 def run(dry_run: bool = False) -> str:
     store = SeenStore()
-    scored: list[Paper] = []
 
-    by_key = {s.key: s for s in config.STREAMS}
+    # A paper can match several streams (e.g. an ontology author's paper also
+    # lands in the semantic-web topic). Keep one entry per paper, attributed to
+    # the stream that scored it highest, so it's drafted/listed only once.
+    best: dict[str, Paper] = {}
+
     for stream in config.STREAMS:
         try:
             papers = fetch_stream(stream, config.LOOKBACK_DAYS, config.PER_PAGE)
@@ -30,32 +33,32 @@ def run(dry_run: bool = False) -> str:
         for p in papers:
             if not store.is_new(p.short_id):
                 continue
-            p.score = relevance.score(p, stream)
-            if p.score >= config.MIN_SCORE:
-                scored.append(p)
+            p.score, p.why = relevance.assess(p, stream)
+            if p.score < config.MIN_SCORE:
+                continue
+            kept = best.get(p.short_id)
+            if kept is None or p.score > kept.score:
+                best[p.short_id] = p
 
+    scored: list[Paper] = list(best.values())
     # Highest score first, then newest.
     scored.sort(key=lambda p: (p.score, p.date), reverse=True)
 
-    # Diversify drafts across streams: take the best unused paper from each
-    # stream in turn until MAX_DRAFTS is reached, so one busy topic (e.g.
-    # semantic web) can't crowd out the others.
+    # Draft the highest-quality papers first (scored is already best-first),
+    # but cap how many come from any single stream so one busy topic can't take
+    # every slot.
+    PER_STREAM_CAP = 2
     top: list[Paper] = []
-    picked: set[str] = set()
-    while len(top) < config.MAX_DRAFTS:
-        progressed = False
-        for key in by_key:
-            if len(top) >= config.MAX_DRAFTS:
-                break
-            for p in scored:
-                if p.stream == key and p.short_id not in picked:
-                    top.append(p)
-                    picked.add(p.short_id)
-                    progressed = True
-                    break
-        if not progressed:
+    per_stream: dict[str, int] = {}
+    for p in scored:
+        if len(top) >= config.MAX_DRAFTS:
             break
+        if per_stream.get(p.stream, 0) >= PER_STREAM_CAP:
+            continue
+        top.append(p)
+        per_stream[p.stream] = per_stream.get(p.stream, 0) + 1
 
+    picked = {p.short_id for p in top}
     rest = [p for p in scored if p.short_id not in picked]
 
     drafts = [(p, drafter.make_draft(p)) for p in top]

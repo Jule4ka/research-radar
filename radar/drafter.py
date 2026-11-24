@@ -14,12 +14,26 @@ from .openalex import Paper
 
 MODEL = "claude-sonnet-5-5"
 
+# Hashtags per stream key. Topic streams (key "topic_T…") and anything missing
+# fall back to DEFAULT_TAGS.
+DEFAULT_TAGS = "#Research #AcademicResearch #OpenAlex"
+
 HASHTAGS = {
-    "guizzardi": "#ConceptualModeling #Ontology #OntoUML",
     "conceptual_modelling": "#ConceptualModeling #DataModeling #Ontology",
-    "semantic_web": "#SemanticWeb #KnowledgeGraph #LinkedData",
-    "disinformation": "#Disinformation #InformationIntegrity #MediaLiteracy",
     "cognitive_warfare": "#CognitiveWarfare #InformationWarfare #CognitiveSecurity",
+    # Researcher watchlists
+    "favourites": "#Research #KnowledgeGraphs #Ontology",
+    "cogwar_people": "#CognitiveWarfare #InformationWarfare #CognitiveSecurity",
+    "russia_people": "#RussiaStudies #HybridWarfare #StrategicStudies",
+    "disinfo_people": "#Disinformation #InformationIntegrity #MediaLiteracy",
+    "onto_people": "#Ontology #KnowledgeGraph #SemanticWeb",
+    "complexity_people": "#ComplexSystems #ComplexityScience #ComputationalSocialScience",
+    # A few high-traffic topic streams get tailored tags; the rest use DEFAULT.
+    "topic_T10215": "#SemanticWeb #KnowledgeGraph #LinkedData",
+    "topic_T11450": "#ModelDrivenEngineering #MDE #ConceptualModeling",
+    "topic_T11147": "#Disinformation #InformationIntegrity #MediaLiteracy",
+    "topic_T12221": "#Cybersecurity #CyberWarfare #InfoSec",
+    "topic_T13369": "#RussiaStudies #Geopolitics #StrategicStudies",
 }
 
 
@@ -32,7 +46,7 @@ def template_draft(paper: Paper) -> str:
     authors = ", ".join(paper.authors[:3]) + (" et al." if len(paper.authors) > 3 else "")
     venue = f" ({paper.venue})" if paper.venue else ""
     summary = _trim(paper.abstract) if paper.abstract else "New paper worth a look."
-    tags = HASHTAGS.get(paper.stream, "")
+    tags = HASHTAGS.get(paper.stream, DEFAULT_TAGS)
     return textwrap.dedent(f"""\
         \U0001F4C4 New paper: "{paper.title}"
         {authors}{venue} — {paper.date}

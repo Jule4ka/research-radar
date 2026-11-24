@@ -29,10 +29,24 @@ class Paper:
     url: str
     stream: str = ""
     score: int = 0
+    why: str = ""              # plain-language reason the paper scored as it did
+    type: str = ""             # OpenAlex work type (article, preprint, editorial…)
+    is_oa: bool = False        # open access?
+    oa_status: str = ""        # gold / green / hybrid / bronze / closed
+    oa_url: str = ""           # free full-text url, when OA
+    topic: str = ""            # the paper's own primary OpenAlex topic
+    topic_score: float = 0.0   # how confidently it fits that topic (0..1)
+    venue_type: str = ""       # journal / conference / repository / book series…
+    is_in_doaj: bool = False   # venue indexed in DOAJ (a peer-review signal)
+    refs_count: int = 0        # number of works it cites (scholarly substance)
 
     @property
     def short_id(self) -> str:
         return self.id.rsplit("/", 1)[-1]
+
+    @property
+    def doi_url(self) -> str:
+        return f"https://doi.org/{self.doi}" if self.doi else ""
 
 
 def _reconstruct_abstract(inverted: dict | None) -> str:
@@ -52,6 +66,11 @@ def _session() -> requests.Session:
     mailto = os.environ.get("OPENALEX_MAILTO")
     if mailto:
         headers["From"] = mailto  # polite-pool identification via header, not URL
+    api_key = os.environ.get("OPENALEX_API_KEY")
+    if api_key:
+        # A personal key has its own budget, so you don't share the IP-wide
+        # free pool. Sent as a header (never in the URL / logs).
+        headers["Authorization"] = f"Bearer {api_key}"
     s.headers.update(headers)
     return s
 
@@ -70,8 +89,9 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
         "filter": ",".join(filters),
         "sort": "publication_date:desc",
         "per-page": per_page,
-        "select": ("id,title,publication_date,doi,"
-                   "authorships,primary_location,abstract_inverted_index"),
+        "select": ("id,title,publication_date,doi,type,referenced_works_count,"
+                   "authorships,primary_location,primary_topic,"
+                   "open_access,abstract_inverted_index"),
     }
 
     sess = _session()
@@ -83,6 +103,8 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
     for w in results:
         loc = w.get("primary_location") or {}
         src = loc.get("source") or {}
+        oa = w.get("open_access") or {}
+        topic = w.get("primary_topic") or {}
         authors = [
             (a.get("author") or {}).get("display_name", "")
             for a in (w.get("authorships") or [])
@@ -97,5 +119,14 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
             doi=(w.get("doi") or "").replace("https://doi.org/", ""),
             url=loc.get("landing_page_url") or w["id"],
             stream=stream.key,
+            type=w.get("type") or "",
+            is_oa=bool(oa.get("is_oa")),
+            oa_status=oa.get("oa_status") or "",
+            oa_url=oa.get("oa_url") or "",
+            topic=(topic.get("display_name") or "") if topic else "",
+            topic_score=float(topic.get("score") or 0.0) if topic else 0.0,
+            venue_type=src.get("type") or "",
+            is_in_doaj=bool(src.get("is_in_doaj")),
+            refs_count=int(w.get("referenced_works_count") or 0),
         ))
     return papers
