@@ -54,9 +54,9 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
 
     for i, (paper, text) in enumerate(drafts, 1):
         access = _access(paper)
-        topic = f" · {paper.topic}" if paper.topic else ""
+        topic = f" · {_cell(paper.topic)}" if paper.topic else ""
         lines += [
-            f"## ✍️ Draft {i} — score {paper.score}",
+            f"## ✍️ Draft {i} — score {paper.score}{topic}",
             "",
             f"> **Why picked:** {paper.why}",
             "",
