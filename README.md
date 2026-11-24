@@ -22,16 +22,16 @@ GitHub Actions (cron: Mon/Wed/Fri 07:00 UTC) ── or ── you, locally
 radar/main.py  — orchestrates one run:
   1. fetch     for each stream in config.py, ask OpenAlex for works
                published in the last LOOKBACK_DAYS (10) days      → openalex.py
-  2. dedupe    drop any work id already in state/seen.json         → store.py
+  2. dedupe    drop any work id already in state/seen.json         → main.py
   3. score     rank each paper by metadata quality; drop junk       → relevance.py
                (venue, doc type, reference depth, topic-fit, OA;
                 a paper caught by several streams is kept once)
   4. pick      choose up to MAX_DRAFTS (3), spread across streams
                so one busy topic can't crowd out the others
-  5. draft     turn each pick into a LinkedIn post template       → drafter.py
-  6. render    write everything to state/latest_report.md         → deliver.py
+  5. draft     turn each pick into a LinkedIn post template       → report.py
+  6. render    write everything to state/latest_report.md         → report.py
                (the picks as drafts + the rest as a digest list)
-  7. save      mark the reported ids as seen (skipped on --dry-run)→ store.py
+  7. save      mark the reported ids as seen (skipped on --dry-run)→ main.py
   │
   ▼
 GitHub Actions then:
@@ -292,16 +292,13 @@ research-radar/
 ├── radar/                  the Python package (one job per file)
 │   ├── config.py           WHAT to watch: favourites, author watchlists, the
 │   │                       TOPICS dict, and all the tuning knobs
-│   ├── openalex.py         HOW to fetch: thin OpenAlex /works client;
-│   │                       builds each query and normalises results into Paper
-│   ├── relevance.py        HOW to score: metadata-quality scoring + require filter
-│   ├── drafter.py          HOW to write: Paper → LinkedIn post template
-│   ├── md.py               shared Markdown-cell helpers (used by the renderers)
-│   ├── deliver.py          HOW to present: render drafts + digest to Markdown
-│   ├── canon.py            the --canon reading list (most-cited papers)
-│   ├── download.py         the --download open-access PDF fetch
-│   ├── store.py            MEMORY: the seen.json dedupe store (is_new / mark)
-│   └── main.py             the pipeline + CLI that ties it together
+│   ├── openalex.py         FETCH: thin OpenAlex /works client; builds each
+│   │                       query and normalises results into a Paper
+│   ├── relevance.py        SCORE: metadata-quality scoring + the require filter
+│   ├── report.py           RENDER: Paper → Markdown — LinkedIn drafts, the
+│   │                       digest, and the --canon most-cited reading list
+│   └── main.py             RUN: the pipeline + CLI, plus the seen.json dedupe
+│                           store and the --download open-access PDF fetch
 │
 ├── state/                  run output + memory
 │   ├── seen.json           work ids already reported (committed dedupe ledger)
@@ -317,7 +314,7 @@ research-radar/
 
 The data object that flows through the whole pipeline is `Paper`
 (defined in `openalex.py`): fetched by `openalex`, scored by `relevance`,
-turned into text by `drafter`, and listed by `deliver`.
+rendered to Markdown by `report`, and orchestrated by `main`.
 
 ## Run it locally
 
