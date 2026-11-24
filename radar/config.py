@@ -94,6 +94,9 @@ FAVOURITE_PEOPLE = {
 TOPICS = {
     "T10215": "Semantic Web and Ontologies",
     "T11450": "Model-Driven Software Engineering Techniques",
+    "T10703": "Business Process Modeling and Analysis",
+    "T10639": "Advanced Software Engineering Methodologies",
+    "T10430": "Software Engineering Techniques and Practices",
     "T12221": "Cybersecurity and Cyber Warfare Studies",
     "T10749": "International Law and Human Rights",
     "T13369": "European and Russian Geopolitical Military Strategies",
@@ -134,6 +137,39 @@ LOW_PRIORITY_TOPICS = {
 def _authors(people: dict[str, str]) -> str:
     """Build an OpenAlex author.id filter fragment that ORs everyone together."""
     return "author.id:" + "|".join(people)
+
+
+# Every watched author in one id -> description map, for explainability.
+WATCHED_AUTHORS: dict[str, str] = {
+    **FAVOURITE_PEOPLE, **COGWAR_PEOPLE, **RUSSIA_PEOPLE,
+    **DISINFO_PEOPLE, **ONTO_PEOPLE, **COMPLEXITY_PEOPLE,
+}
+
+
+def author_name(author_id: str) -> str:
+    """Just the person's name from a watchlist entry (drop affiliation/notes)."""
+    desc = WATCHED_AUTHORS.get(author_id, "")
+    if not desc:
+        return author_id
+    return desc.split(" (")[0].split(" — ")[0].strip()
+
+
+def capture_reason(paper, stream) -> str:
+    """Plain-language reason this paper entered the net: which filter matched."""
+    if stream.search:
+        return f'Matched the phrase "{stream.search}" in its title/abstract.'
+    f = stream.filter or ""
+    if f.startswith("topics.id:"):
+        tid = f[len("topics.id:"):]
+        return f"Tagged with your watched topic {TOPICS.get(tid, tid)} ({tid})."
+    if f.startswith("author.id:"):
+        ids = set(f[len("author.id:"):].split("|"))
+        hits = [author_name(a) for a in paper.author_ids if a in ids]
+        who = ", ".join(dict.fromkeys(hits))  # dedupe, keep order
+        if who:
+            return f"Co-authored by {who}, on your watchlist."
+        return f"From your watchlist: {stream.label}."
+    return stream.label
 
 
 STREAMS: list[Stream] = [
@@ -198,6 +234,12 @@ LOOKBACK_DAYS = 10
 
 # Minimum relevance score (see relevance.py) for a paper to be eligible for a draft.
 MIN_SCORE = 1
+
+# Bonus when a paper is captured by more than one of your criteria (e.g. a watched
+# author AND a watched topic): +MULTI_MATCH_BONUS per extra distinct criterion,
+# capped at MULTI_MATCH_MAX. Set the bonus to 0 to rank on quality alone.
+MULTI_MATCH_BONUS = 8
+MULTI_MATCH_MAX = 24
 
 # How many full LinkedIn drafts to generate per run. The rest go in a digest list.
 MAX_DRAFTS = 3

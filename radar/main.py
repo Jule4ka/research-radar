@@ -25,6 +25,7 @@ def run(dry_run: bool = False, download: bool = False) -> str:
     # lands in the semantic-web topic). Keep one entry per paper, attributed to
     # the stream that scored it highest, so it's drafted/listed only once.
     best: dict[str, Paper] = {}
+    reasons: dict[str, list[str]] = {}  # short_id -> capture reason per match
 
     for stream in config.STREAMS:
         try:
@@ -38,9 +39,23 @@ def run(dry_run: bool = False, download: bool = False) -> str:
             p.score, p.why = relevance.assess(p, stream)
             if p.score < config.MIN_SCORE:
                 continue
+            p.matched = config.capture_reason(p, stream)
+            reasons.setdefault(p.short_id, []).append(p.matched)
             kept = best.get(p.short_id)
             if kept is None or p.score > kept.score:
                 best[p.short_id] = p
+
+    # A paper that trips several of your criteria (e.g. a watched author AND a
+    # watched topic) is more clearly on-target: nudge its score up and record
+    # every distinct reason it was captured.
+    for sid, p in best.items():
+        hits = list(dict.fromkeys(reasons.get(sid, [p.matched])))  # distinct, ordered
+        p.matched = "  ·  ".join(hits)
+        if len(hits) > 1:
+            bonus = min((len(hits) - 1) * config.MULTI_MATCH_BONUS,
+                        config.MULTI_MATCH_MAX)
+            p.score += bonus
+            p.why += f" · ✚ hits {len(hits)} of your criteria (+{bonus})"
 
     scored: list[Paper] = list(best.values())
     # Highest score first, then newest.

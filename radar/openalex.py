@@ -8,7 +8,7 @@ environment only -- it is never hard-coded here.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import requests
@@ -22,14 +22,16 @@ class Paper:
     id: str
     title: str
     authors: list[str]
-    abstract: str
-    venue: str
-    date: str
-    doi: str
-    url: str
+    author_ids: list[str] = field(default_factory=list)  # OpenAlex author ids
+    abstract: str = ""
+    venue: str = ""
+    date: str = ""
+    doi: str = ""
+    url: str = ""
     stream: str = ""
     score: int = 0
     why: str = ""              # plain-language reason the paper scored as it did
+    matched: str = ""          # why it was captured (which stream/filter caught it)
     type: str = ""             # OpenAlex work type (article, preprint, editorial…)
     is_oa: bool = False        # open access?
     oa_status: str = ""        # gold / green / hybrid / bronze / closed
@@ -109,14 +111,20 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
         oa = w.get("open_access") or {}
         bol = w.get("best_oa_location") or {}
         topic = w.get("primary_topic") or {}
+        authorships = w.get("authorships") or []
         authors = [
             (a.get("author") or {}).get("display_name", "")
-            for a in (w.get("authorships") or [])
+            for a in authorships
+        ]
+        author_ids = [
+            ((a.get("author") or {}).get("id") or "").rsplit("/", 1)[-1]
+            for a in authorships
         ]
         papers.append(Paper(
             id=w["id"],
             title=w.get("title") or "(untitled)",
             authors=[a for a in authors if a],
+            author_ids=[a for a in author_ids if a],
             abstract=_reconstruct_abstract(w.get("abstract_inverted_index")),
             venue=src.get("display_name") or "",
             date=w.get("publication_date") or "",

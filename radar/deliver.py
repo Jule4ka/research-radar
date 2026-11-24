@@ -65,9 +65,12 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
         access = _access(paper)
         topic = f" · {_cell(paper.topic)}" if paper.topic else ""
         matched = f" · {_cell(_matched(paper))}" if paper.stream else ""
+        caught = paper.matched or f"From your watchlist: {_matched(paper)}."
         lines += [
             f"## ✍️ Draft {i} — score {paper.score}{matched}",
             "",
+            f"> **Captured because:** {caught}",
+            ">",
             f"> **Why picked:** {paper.why}",
             "",
             "```",
@@ -88,13 +91,15 @@ def render(drafts: list[tuple[Paper, str]], digest: list[Paper]) -> str:
         lines += [
             "## \U0001F4F0 Also new (digest)",
             "",
-            "| Date | Access | Score | Title | Authors | Topic | DOI | Why |",
-            "|---|---|---|---|---|---|---|---|",
+            "| Date | Access | Score | Title | Authors "
+            "| Captured because | Topic | DOI | Why |",
+            "|---|---|---|---|---|---|---|---|---|",
         ]
         for p in shown:
             lines.append(
                 f"| {p.date} | {_access(p)} | {p.score} "
                 f"| [{_cell(p.title)}]({p.url}) | {_cell(_authors(p))} "
+                f"| {_cell(p.matched) or '—'} "
                 f"| {_cell(p.topic) or '—'} | {_doi(p)} | {_cell(p.why)} |"
             )
         lines.append("")

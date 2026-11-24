@@ -105,12 +105,26 @@ the radar; the score decides what's worth reading within it.
 | Open access | +5 | tie-breaker — you can actually read it today |
 
 Junk document types (editorials, errata, retractions, …) are dropped outright.
-Every draft and digest row shows its **score and a plain-language "why"**, so you
-can see the reasoning and retune it. Raising `MIN_SCORE` keeps only
-higher-quality papers; lowering it catches more.
+
+**Multi-criteria bonus.** A paper that trips more than one of your criteria — a
+watched author *and* a watched topic, or two watched topics — is more clearly
+on-target, so it gets `+MULTI_MATCH_BONUS` (default 8) per extra distinct
+criterion, capped at `MULTI_MATCH_MAX` (24). Set the bonus to 0 to rank on
+quality alone.
+
+**Explainability.** Every draft and digest row shows both:
+
+- **Captured because** — *why it entered the radar*: the exact criterion/criteria
+  that matched (a named watched author, a watched topic + its id, or a search
+  phrase). Papers hitting several list every reason.
+- **Why picked** — *how it scored*: the plain-language quality breakdown above
+  (plus the multi-criteria bonus when it applies).
+
+Raising `MIN_SCORE` keeps only higher-quality papers; lowering it catches more.
 
 The digest is a table of everything new that wasn't drafted, with
-**date · access (🔓/🔒) · score · title · authors · topic · DOI · why**.
+**date · access (🔓/🔒) · score · title · authors · captured because · topic ·
+DOI · why**.
 
 ## What it watches
 
@@ -219,6 +233,9 @@ digest (tune with `MIN_SCORE` or drop it).
 |---|---|
 | Semantic Web and Ontologies | `T10215` |
 | Model-Driven Software Engineering Techniques | `T11450` |
+| Business Process Modeling and Analysis | `T10703` |
+| Advanced Software Engineering Methodologies | `T10639` |
+| Software Engineering Techniques and Practices | `T10430` |
 | Cybersecurity and Cyber Warfare Studies | `T12221` |
 | International Law and Human Rights ⚠ | `T10749` |
 | European and Russian Geopolitical Military Strategies | `T13369` |
@@ -361,6 +378,8 @@ issue with the digest as usual.
 - `MAX_DRAFTS` — full drafts per run (the rest become a digest list).
 - `MIN_SCORE` — the quality floor (see [How papers are ranked](#how-papers-are-ranked)).
   Raise it to keep only serious venues; lower it to catch preprints and more.
+- `MULTI_MATCH_BONUS` / `MULTI_MATCH_MAX` — reward for a paper hitting several of
+  your criteria at once (set the bonus to 0 to rank on quality alone).
 - `LOW_PRIORITY_TOPICS` — topic ids to keep watching but keep *out* of drafts
   (penalised, still shown in the digest).
 - `DOWNLOAD_MIN_SCORE` / `DOWNLOAD_MAX` — quality bar and per-run cap for the
