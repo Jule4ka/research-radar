@@ -68,7 +68,9 @@ def run(dry_run: bool = False, download: bool = False) -> str:
     if download:
         from . import download as dl
         got = dl.download_oa(scored, Path(config.DOWNLOAD_DIR),
-                             config.DOWNLOAD_MIN_SCORE, config.DOWNLOAD_MAX)
+                             config.DOWNLOAD_MIN_SCORE, config.DOWNLOAD_MAX,
+                             config.DOWNLOAD_PREPRINT_MIN_SCORE,
+                             config.PREPRINT_TOPICS, config.PREPRINT_STREAMS)
         print(f"[radar] downloaded {len(got)} open-access PDF(s) "
               f"(score >= {config.DOWNLOAD_MIN_SCORE}) to {config.DOWNLOAD_DIR}/")
 

@@ -6,6 +6,10 @@ DOWNLOAD_MAX). Closed-access papers are never downloaded. When a link turns out
 to be a landing page rather than a direct PDF (or the publisher blocks the
 fetch), we save a small `.link.txt` with the URL instead, best-effort.
 
+Preprints are an exception to the score bar: in a few chosen areas (see
+PREPRINT_TOPICS / PREPRINT_STREAMS in config) a preprint is saved even below
+DOWNLOAD_MIN_SCORE, down to a light junk floor, so you catch the early work.
+
 Not used by the unattended GitHub Actions run — that machine is wiped after each
 run, so it can't hand you files.
 """
@@ -14,6 +18,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
+from typing import Iterable
 
 import requests
 
@@ -27,10 +32,31 @@ def _safe(name: str, n: int = 60) -> str:
     return (s[:n].rstrip("-") or "paper")
 
 
+def _is_preprint(p: Paper) -> bool:
+    return p.type == "preprint" or p.venue_type == "repository"
+
+
+def _wanted(p: Paper, min_score: int, preprint_min_score: int,
+            preprint_topics: Iterable[str], preprint_streams: Iterable[str]) -> bool:
+    """Peer-reviewed work clears min_score everywhere; a preprint also qualifies
+    (down to preprint_min_score) when it's in one of the chosen areas."""
+    if p.score >= min_score:
+        return True
+    if (_is_preprint(p) and p.score >= preprint_min_score
+            and (p.topic_id in preprint_topics or p.stream in preprint_streams)):
+        return True
+    return False
+
+
 def download_oa(papers: list[Paper], out_dir: Path,
-                min_score: int, max_n: int) -> list[Paper]:
+                min_score: int, max_n: int,
+                preprint_min_score: int = 10 ** 9,
+                preprint_topics: Iterable[str] = (),
+                preprint_streams: Iterable[str] = ()) -> list[Paper]:
     """Download qualifying OA papers; set `local_path` on each. Returns them."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    preprint_topics = set(preprint_topics)
+    preprint_streams = set(preprint_streams)
     sess = requests.Session()
     sess.headers.update({"User-Agent": UA})
 
@@ -38,7 +64,10 @@ def download_oa(papers: list[Paper], out_dir: Path,
     for p in papers:
         if len(got) >= max_n:
             break
-        if not p.is_oa or p.score < min_score or not p.pdf_url:
+        if not p.is_oa or not p.pdf_url:
+            continue
+        if not _wanted(p, min_score, preprint_min_score,
+                       preprint_topics, preprint_streams):
             continue
 
         stem = f"{p.date}__score{p.score}__{_safe(p.title)}__{p.short_id}"

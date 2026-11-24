@@ -212,3 +212,23 @@ PER_PAGE = 50
 DOWNLOAD_MIN_SCORE = 70   # quality bar for the reading pile
 DOWNLOAD_MAX = 50         # safety cap on PDFs per run
 DOWNLOAD_DIR = "papers"   # folder (relative to the repo root)
+
+# Preprints (unreviewed manuscripts on arXiv/SSRN/etc.) normally score too low to
+# clear DOWNLOAD_MIN_SCORE, so they aren't saved. But in a few areas you want the
+# early work too. A preprint is downloaded (down to DOWNLOAD_PREPRINT_MIN_SCORE)
+# when it belongs to one of these areas; everywhere else only peer-reviewed work
+# clearing DOWNLOAD_MIN_SCORE is saved. An area matches by the paper's OWN primary
+# topic id (robust to which stream surfaced it) or by the stream that caught it.
+DOWNLOAD_PREPRINT_MIN_SCORE = 20   # light junk floor for those preprints
+PREPRINT_TOPICS = {
+    "T11147",   # Misinformation and Its Impacts      — disinformation
+    "T10215",   # Semantic Web and Ontologies         — conceptual models
+    "T11450",   # Model-Driven Software Engineering    — conceptual models
+    "T12221",   # Cybersecurity and Cyber Warfare      — cognitive warfare
+}
+PREPRINT_STREAMS = {
+    "disinfo_people",         # disinformation
+    "conceptual_modelling",   # conceptual models
+    "cognitive_warfare",      # cognitive warfare
+    "cogwar_people",          # cognitive warfare
+}

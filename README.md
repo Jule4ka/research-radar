@@ -323,6 +323,14 @@ digest, marked 🔒). When a link is a landing page rather than a direct PDF, a
 small `.link.txt` is saved instead. Each downloaded paper shows a
 **📥 saved** link in the report.
 
+**Preprints** (unreviewed manuscripts on arXiv/SSRN/etc.) usually score below 70,
+so they aren't saved by default. In a few chosen areas, though, the early work is
+worth having: a preprint there is downloaded even below the bar (down to
+`DOWNLOAD_PREPRINT_MIN_SCORE`). Out of the box those areas are **disinformation,
+conceptual models, and cognitive warfare** — matched by the paper's own primary
+topic (`PREPRINT_TOPICS`) or the stream that caught it (`PREPRINT_STREAMS`).
+Peer-reviewed work everywhere else still needs `DOWNLOAD_MIN_SCORE`.
+
 This is a **local-only** feature: the unattended GitHub Actions run can't keep
 files (its machine is wiped each run), so it never downloads — it just opens the
 issue with the digest as usual.
@@ -358,6 +366,9 @@ issue with the digest as usual.
 - `DOWNLOAD_MIN_SCORE` / `DOWNLOAD_MAX` — quality bar and per-run cap for the
   open-access PDFs saved by `--download` (see
   [Downloading papers](#downloading-papers-to-read)).
+- `PREPRINT_TOPICS` / `PREPRINT_STREAMS` / `DOWNLOAD_PREPRINT_MIN_SCORE` — areas
+  where preprints are also saved (below the normal bar), and the floor for them.
+  Add a topic id or stream key to widen which areas keep early work.
 - `boost` / `require` keyword lists per stream in `config.py`.
 - Cron schedule — edit the `cron:` line in `.github/workflows/watch.yml`.
   It currently runs **Mon/Wed/Fri at 07:00 UTC** (`0 7 * * 1,3,5`); change the

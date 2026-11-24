@@ -34,7 +34,8 @@ class Paper:
     is_oa: bool = False        # open access?
     oa_status: str = ""        # gold / green / hybrid / bronze / closed
     oa_url: str = ""           # free full-text url, when OA
-    topic: str = ""            # the paper's own primary OpenAlex topic
+    topic: str = ""            # the paper's own primary OpenAlex topic (name)
+    topic_id: str = ""         # that topic's OpenAlex id, e.g. "T11147"
     topic_score: float = 0.0   # how confidently it fits that topic (0..1)
     venue_type: str = ""       # journal / conference / repository / book series…
     is_in_doaj: bool = False   # venue indexed in DOAJ (a peer-review signal)
@@ -127,6 +128,7 @@ def fetch_stream(stream, lookback_days: int, per_page: int) -> list[Paper]:
             oa_status=oa.get("oa_status") or "",
             oa_url=oa.get("oa_url") or "",
             topic=(topic.get("display_name") or "") if topic else "",
+            topic_id=((topic.get("id") or "").rsplit("/", 1)[-1]) if topic else "",
             topic_score=float(topic.get("score") or 0.0) if topic else 0.0,
             venue_type=src.get("type") or "",
             is_in_doaj=bool(src.get("is_in_doaj")),
