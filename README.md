@@ -81,10 +81,10 @@ GET https://api.openalex.org/works
       &select=id,title,publication_date,type,primary_topic,open_access,authorships,...
 ```
 
-So one run = **32 of these queries** ("last 10 days matching this stream, newest
-first") — 2 keyword searches, 1 combined researcher query, and 29 topics.
-OpenAlex does the finding; everything after — dedupe, scoring, ranking — happens
-locally in Python (`main.py`).
+So one run = **27 of these queries** ("last 10 days matching this stream, newest
+first") — 10 keyword searches, 1 combined researcher query, and 16 topics (12
+direct + 4 gated). OpenAlex does the finding; everything after — dedupe, scoring,
+ranking — happens locally in Python (`main.py`).
 
 ## How papers are ranked
 
@@ -130,9 +130,11 @@ DOI · why**.
 
 Everything is defined in `radar/config.py`. Three kinds of stream feed the radar:
 
-- **Keyword searches** — a title/abstract phrase that catches *anyone* who uses
-  it, not just your people or topics. Two: *conceptual modelling* and *cognitive
-  warfare*. Add a phrase to the keyword block in `config.py` to watch more.
+- **Keyword searches** — a precise title/abstract phrase that catches *anyone*
+  who uses it, not just your people or topics: *conceptual modelling*, *cognitive
+  warfare*, *disinformation*, *information warfare*, *influence operations*,
+  *information manipulation / FIMI*, *reflexive control*, *hybrid warfare*, and
+  *OntoUML*. Add a phrase to the keyword block in `config.py` to watch more.
 - **Watched researchers** — one flat list of OpenAlex **author ids**, all OR'd
   into a single query; following one is the equivalent of a Google Scholar "new
   articles" alert.
@@ -208,46 +210,48 @@ OR'd together). Edit the dict to follow or drop someone.
 
 ### Topics
 
-Each OpenAlex topic is its own stream (the `TOPICS` dict in `config.py`); delete
-a line to stop watching it. **⚠ = broad, high-volume** topic — expect a long
-digest (tune with `MIN_SCORE` or drop it).
+Each OpenAlex topic is its own stream (the `TOPICS` / `GATED_TOPICS` dicts in
+`config.py`); delete a line to stop watching it. Topics come in two kinds.
+
+**Direct** — narrow and on-theme, so the topic tag alone is enough:
 
 | Topic | OpenAlex id |
 |---|---|
 | Semantic Web and Ontologies | `T10215` |
 | Model-Driven Software Engineering Techniques | `T11450` |
 | Business Process Modeling and Analysis | `T10703` |
-| Advanced Software Engineering Methodologies | `T10639` |
-| Software Engineering Techniques and Practices | `T10430` |
 | Cybersecurity and Cyber Warfare Studies | `T12221` |
-| International Law and Human Rights ⚠ | `T10749` |
 | European and Russian Geopolitical Military Strategies | `T13369` |
-| Human-Automation Interaction and Safety ⚠ | `T10525` |
-| Military and Defense Studies | `T14086` |
-| Terrorism, Counterterrorism, and Political Violence ⚠ | `T10994` |
 | Misinformation and Its Impacts | `T11147` |
+| Military and Defense Studies | `T14086` |
+| Military Strategy and Technology | `T12888` |
+| War, Ethics, and Justification | `T12957` |
 | Freedom of Expression and Defamation | `T14432` |
-| Posthumanist Ethics and Activism | `T10738` |
-| Management and Organizational Studies | `T10344` |
-| Graph Theory and Algorithms | `T12292` |
-| Advanced Database Systems and Queries ⚠ | `T10317` |
-| Advanced Graph Neural Networks | `T11273` |
-| Web Applications and Data Management | `T12601` |
-| Scientific Computing and Data Management | `T11986` |
-| Complexity and Algorithms in Graphs ⚠ | `T10720` |
-| Topic Modeling | `T10028` |
-| Logic, Reasoning, and Knowledge | `T11010` |
 | Ethics and Social Impacts of AI | `T10883` |
-| Research Data Management Practices | `T11937` |
+| Logic, Reasoning, and Knowledge | `T11010` |
+
+**Gated** (`GATED_TOPICS`) — relevant but broad, so a paper is kept only if its
+title/abstract also mentions one of your `GATE_TERMS` (disinformation, influence
+operations, cognitive / information / hybrid warfare, reflexive control, cyber,
+Russia, ontology, knowledge graph, conceptual model, …):
+
+| Topic | OpenAlex id |
+|---|---|
+| International Law and Human Rights | `T10749` |
+| Terrorism, Counterterrorism, and Political Violence | `T10994` |
 | Information Systems Theories and Implementation | `T11024` |
 | Philosophy, Ethics, and Existentialism † | `T12366` |
-| War, Ethics, and Justification | `T12957` |
-| Military Strategy and Technology | `T12888` |
 
 > † You listed this as *"Phenomenology, Ethics, and Existentialism"*; the actual
 > OpenAlex topic is *"Philosophy, Ethics, and Existentialism"* (`T12366`).
 >
-> *"Shaping Societal Transitions"* was **dropped** — no matching OpenAlex topic.
+> **Dropped as too broad / off-theme** — they scored high on quality but weren't
+> about your interests: general software-engineering methods, Management &
+> Organizational Studies, Graph Theory, Database Systems, Graph Neural Networks,
+> Web Applications, Scientific Computing, Topic Modelling, Research Data
+> Management, Human-Automation Interaction, Posthumanist Ethics. Knowledge graphs
+> have no clean OpenAlex topic of their own — they're covered by *Semantic Web
+> and Ontologies*.
 
 ## Complexity science — background & self-study
 
@@ -390,7 +394,11 @@ issue with the digest as usual.
 - `CANON_TOPIC_IDS` / `CANON_PER_TOPIC` / `RISING_PER_TOPIC` / `RISING_SINCE_YEARS`
   — which topics the `--canon` reading list covers and how many papers each list
   shows (see [Reading list](#reading-list--most-cited-papers-impact-not-freshness)).
-- `require` — optional per-stream noise filter (a phrase that must appear).
+- `TOPICS` / `GATED_TOPICS` / `GATE_TERMS` — what topics you watch, and (for the
+  broad `GATED_TOPICS`) the terms that must appear for a paper to count. Move a
+  topic between the two dicts to tighten or loosen it; prune `TOPICS` to cut noise.
+- `require` — optional per-stream noise filter (a phrase that must appear); this
+  is the same mechanism `GATE_TERMS` uses, and you can set it on any stream.
 - Cron schedule — edit the `cron:` line in `.github/workflows/watch.yml`.
   It currently runs **Mon/Wed/Fri at 07:00 UTC** (`0 7 * * 1,3,5`); change the
   day field (`1,3,5`) to pick other days — e.g. `2,5` for Tue/Fri.

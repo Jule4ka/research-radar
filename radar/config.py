@@ -77,37 +77,53 @@ PEOPLE = {
 # Each OpenAlex topic becomes its own stream (one /works query per topic), so
 # you can see which topic matched and prune a noisy one by deleting its line.
 # Find a topic id at https://api.openalex.org/topics?search=Your+Topic+Name
+# Topics split by how precise they are to your interests:
+#   TOPICS       — narrow and on-theme: capture ≈ relevance, taken as-is.
+#   GATED_TOPICS — relevant but broad: only kept when one of GATE_TERMS appears
+#                  in the title/abstract (via the per-stream `require` filter),
+#                  so a broad field is narrowed to the slice you care about.
+# Broad, off-theme topics (general software-engineering methods, management,
+# graph/DB/web/scientific-computing, GNNs, topic modelling, data management, …)
+# were dropped: they scored high on quality but had nothing to do with you.
 TOPICS = {
+    # modelling / semantic-web cluster (also covers knowledge graphs & ontologies)
     "T10215": "Semantic Web and Ontologies",
     "T11450": "Model-Driven Software Engineering Techniques",
     "T10703": "Business Process Modeling and Analysis",
-    "T10639": "Advanced Software Engineering Methodologies",
-    "T10430": "Software Engineering Techniques and Practices",
+    # disinformation / security / military cluster (incl. hybrid threats)
     "T12221": "Cybersecurity and Cyber Warfare Studies",
-    "T10749": "International Law and Human Rights",
     "T13369": "European and Russian Geopolitical Military Strategies",
-    "T10525": "Human-Automation Interaction and Safety",
-    "T14086": "Military and Defense Studies",
-    "T10994": "Terrorism, Counterterrorism, and Political Violence",
     "T11147": "Misinformation and Its Impacts",
-    "T14432": "Freedom of Expression and Defamation",
-    "T10738": "Posthumanist Ethics and Activism",
-    "T10344": "Management and Organizational Studies",
-    "T12292": "Graph Theory and Algorithms",
-    "T10317": "Advanced Database Systems and Queries",
-    "T11273": "Advanced Graph Neural Networks",
-    "T12601": "Web Applications and Data Management",
-    "T11986": "Scientific Computing and Data Management",
-    "T10720": "Complexity and Algorithms in Graphs",
-    "T10028": "Topic Modeling",
-    "T11010": "Logic, Reasoning, and Knowledge",
-    "T10883": "Ethics and Social Impacts of AI",
-    "T11937": "Research Data Management Practices",
-    "T11024": "Information Systems Theories and Implementation",
-    "T12957": "War, Ethics, and Justification",
+    "T14086": "Military and Defense Studies",
     "T12888": "Military Strategy and Technology",
-    "T12366": "Philosophy, Ethics, and Existentialism"
+    "T12957": "War, Ethics, and Justification",
+    "T14432": "Freedom of Expression and Defamation",
+    # ethics / reasoning cluster
+    "T10883": "Ethics and Social Impacts of AI",
+    "T11010": "Logic, Reasoning, and Knowledge",
 }
+
+# Relevant but broad: a paper is kept only if it also mentions one of GATE_TERMS.
+GATED_TOPICS = {
+    "T10749": "International Law and Human Rights",
+    "T10994": "Terrorism, Counterterrorism, and Political Violence",
+    "T11024": "Information Systems Theories and Implementation",
+    "T12366": "Philosophy, Ethics, and Existentialism",
+}
+
+# Your cross-cutting terms. For a GATED_TOPIC, a paper is kept only if at least
+# one appears in its title/abstract (matched as a lowercase substring, so
+# "ontolog" also catches "ontology"/"ontologies" and "russia" catches "russian").
+GATE_TERMS = [
+    "disinformation", "misinformation", "propaganda", "influence operation",
+    "information warfare", "information operation", "cognitive warfare",
+    "hybrid warfare", "hybrid threat", "fimi", "reflexive control", "maskirovka",
+    "cyber", "russia", "ontolog", "knowledge graph", "conceptual model",
+    "semantic web",
+]
+
+# Name lookup across both sets (for the "captured because" explanation).
+TOPIC_NAMES = {**TOPICS, **GATED_TOPICS}
 
 
 def _authors(people: dict[str, str]) -> str:
@@ -130,7 +146,7 @@ def capture_reason(paper, stream) -> str:
     f = stream.filter or ""
     if f.startswith("topics.id:"):
         tid = f[len("topics.id:"):]
-        return f"Tagged with your watched topic {TOPICS.get(tid, tid)} ({tid})."
+        return f"Tagged with your watched topic {TOPIC_NAMES.get(tid, tid)} ({tid})."
     if f.startswith("author.id:"):
         ids = set(f[len("author.id:"):].split("|"))
         hits = [author_name(a) for a in paper.author_ids if a in ids]
@@ -151,31 +167,39 @@ def stream_kind(stream_key: str) -> str:
 
 
 STREAMS: list[Stream] = [
-    # --- 1. Keyword / term searches (a phrase in the title/abstract) --------
-    Stream(
-        key="conceptual_modelling",
-        label="Conceptual modelling (keyword)",
-        search="conceptual modeling",
-        require=["conceptual model", "conceptual modeling", "conceptual modelling"],
-    ),
-    Stream(
-        key="cognitive_warfare",
-        label="Cognitive warfare (keyword)",
-        search="cognitive warfare",
-    ),
+    # --- 1. Keyword / term searches (a precise phrase in the title/abstract) -
+    Stream(key="conceptual_modelling", label="Conceptual modelling (keyword)",
+           search="conceptual modeling",
+           require=["conceptual model", "conceptual modeling", "conceptual modelling"]),
+    Stream(key="cognitive_warfare", label="Cognitive warfare (keyword)",
+           search="cognitive warfare"),
+    Stream(key="disinformation", label="Disinformation (keyword)",
+           search="disinformation"),
+    Stream(key="information_warfare", label="Information warfare (keyword)",
+           search="information warfare"),
+    Stream(key="influence_operations", label="Influence operations (keyword)",
+           search="influence operations"),
+    Stream(key="information_manipulation", label="Information manipulation / FIMI (keyword)",
+           search="information manipulation"),
+    Stream(key="fimi", label="FIMI (keyword)", search="FIMI"),
+    Stream(key="reflexive_control", label="Reflexive control (keyword)",
+           search="reflexive control"),
+    Stream(key="hybrid_warfare", label="Hybrid warfare (keyword)",
+           search="hybrid warfare"),
+    Stream(key="ontouml", label="OntoUML (keyword)", search="OntoUML"),
 
     # --- 2. Watched researchers (all of PEOPLE in one query) ----------------
-    Stream(
-        key="people",
-        label="Watched researchers",
-        filter=_authors(PEOPLE),
-    ),
+    Stream(key="people", label="Watched researchers", filter=_authors(PEOPLE)),
 ]
 
-# --- 3. Topic streams (generated: one per entry in TOPICS) ------------------
+# --- 3. Topic streams: one per topic; GATED_TOPICS add the GATE_TERMS gate ---
 STREAMS += [
     Stream(key=f"topic_{tid}", label=name, filter=f"topics.id:{tid}")
     for tid, name in TOPICS.items()
+]
+STREAMS += [
+    Stream(key=f"topic_{tid}", label=name, filter=f"topics.id:{tid}", require=GATE_TERMS)
+    for tid, name in GATED_TOPICS.items()
 ]
 
 # === Tuning knobs ============================================================
