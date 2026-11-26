@@ -4,3 +4,5 @@ __pycache__/
 venv/
 .env
 state/latest_report.md
+state/reading_list.md
+papers/

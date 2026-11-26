@@ -2,8 +2,8 @@ name: Research Radar
 
 on:
   schedule:
-    # Tuesdays and Fridays at 07:00 UTC (a couple of times a week).
-    - cron: "0 7 * * 2,5"
+    # Mondays, Wednesdays and Fridays at 07:00 UTC.
+    - cron: "0 7 * * 1,3,5"
   workflow_dispatch:        # lets you run it by hand from the Actions tab
 
 permissions:
@@ -25,10 +25,10 @@ jobs:
 
       - name: Run radar
         env:
-          # Optional, only if you add the secret. Enables Claude-polished drafts.
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Optional polite-pool contact; set as a repo variable if you want it.
           OPENALEX_MAILTO: ${{ vars.OPENALEX_MAILTO }}
+          # Personal OpenAlex key (own budget, not the shared IP pool).
+          OPENALEX_API_KEY: ${{ secrets.OPENALEX_API_KEY }}
         run: python -m radar.main
 
       - name: Open review issue
@@ -38,10 +38,19 @@ jobs:
           if grep -q "_No new papers this run._" state/latest_report.md; then
             echo "Nothing new; skipping issue."
           else
+            # GitHub caps an issue body at 65,536 chars. The digest is already
+            # capped (DIGEST_MAX), but truncate here too so a run never fails.
+            body=state/latest_report.md
+            if [ "$(wc -c < "$body")" -gt 64000 ]; then
+              head -c 64000 "$body" > state/_issue_body.md
+              printf '\n\n_Report truncated to fit GitHub'"'"'s issue size limit._\n' \
+                >> state/_issue_body.md
+              body=state/_issue_body.md
+            fi
             gh label create radar --color 5319e7 --force >/dev/null 2>&1 || true
             gh issue create \
               --title "Research Radar — $(date -u +%Y-%m-%d)" \
-              --body-file state/latest_report.md \
+              --body-file "$body" \
               --label radar
           fi
 
