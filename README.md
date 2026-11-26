@@ -1,12 +1,13 @@
 # Research Radar
 
-Watches [OpenAlex](https://openalex.org) for **new academic papers** and canon papers across a
+Watches [OpenAlex](https://openalex.org) for **new academic papers** across a
 set of [topics](#topics) (cognitive warfare, the semantic web, disinformation,
 conceptual / model-driven engineering, law, ethics, complexity science and
 more) and for **new work by a watchlist of researchers** in those fields
 (following an OpenAlex author id is the equivalent of a Google Scholar "new
 articles" alert). It then drafts ready-to-post **LinkedIn** updates for the
-best of them a couple of times a week.
+best of them a couple of times a week, and builds a most-cited
+**[reading list](#reading-list--most-cited-papers-impact-not-freshness)** for the field.
 
 You stay in the loop: the tool **drafts**, you review and post.
 
@@ -138,7 +139,8 @@ Everything is defined in `radar/config.py`. Three kinds of stream feed the radar
 - **Watched researchers** — one flat list of OpenAlex **author ids**, all OR'd
   into a single query; following one is the equivalent of a Google Scholar "new
   articles" alert.
-- **Topic streams** — one OpenAlex **topic id** each (see [Topics](#topics)).
+- **Topic streams** — one OpenAlex **topic id** each — *direct*, or *gated* by
+  your terms when the topic is broad (see [Topics](#topics)).
 
 Drafts are chosen **per kind** — up to `DRAFTS_PER_KIND` (3) from keywords,
 authors, and topics each — so a broad topic can't crowd out your people or your
@@ -275,7 +277,7 @@ research side.
 research-radar/
 ├── radar/                  the Python package (one job per file)
 │   ├── config.py           WHAT to watch: keyword searches, the PEOPLE
-│   │                       watchlist, the TOPICS dict, and all the tuning knobs
+│   │                       watchlist, TOPICS / GATED_TOPICS, and the tuning knobs
 │   ├── openalex.py         FETCH: thin OpenAlex /works client; builds each
 │   │                       query and normalises results into a Paper
 │   ├── relevance.py        SCORE: metadata-quality scoring + the require filter
@@ -347,10 +349,11 @@ small `.link.txt` is saved instead. Each downloaded paper shows a
 **Preprints** (unreviewed manuscripts on arXiv/SSRN/etc.) usually score below 70,
 so they aren't saved by default. In a few chosen areas, though, the early work is
 worth having: a preprint there is downloaded even below the bar (down to
-`DOWNLOAD_PREPRINT_MIN_SCORE`). Out of the box those areas are **disinformation,
-conceptual models, and cognitive warfare** — matched by the paper's own primary
-topic (`PREPRINT_TOPICS`) or the stream that caught it (`PREPRINT_STREAMS`).
-Peer-reviewed work everywhere else still needs `DOWNLOAD_MIN_SCORE`.
+`DOWNLOAD_PREPRINT_MIN_SCORE`). Those areas are **disinformation, conceptual
+models, and cognitive warfare** — a preprint qualifies when its own primary topic
+is in `PREPRINT_TOPICS`, or it was caught by one of your keyword searches
+(`PREPRINT_STREAMS` is derived from them). Peer-reviewed work everywhere else
+still needs `DOWNLOAD_MIN_SCORE`.
 
 This is a **local-only** feature: the unattended GitHub Actions run can't keep
 files (its machine is wiped each run), so it never downloads — it just opens the

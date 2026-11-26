@@ -244,10 +244,10 @@ PREPRINT_TOPICS = {
     "T11450",   # Model-Driven Software Engineering    — conceptual models
     "T12221",   # Cybersecurity and Cyber Warfare      — cognitive warfare
 }
-PREPRINT_STREAMS = {
-    "conceptual_modelling",   # conceptual models
-    "cognitive_warfare",      # cognitive warfare
-}
+# Every keyword search is a precise term for one of your core areas
+# (disinformation / cognitive warfare / conceptual modelling), so early work
+# caught by one is worth keeping. Derived, so new keywords are covered too.
+PREPRINT_STREAMS = {s.key for s in STREAMS if s.search}
 
 # --- Reading list: most-cited papers (`python -m radar.main --canon`) --------
 # A separate "impact" view: per topic, an all-time canon (by total citations) and
