@@ -57,7 +57,7 @@ matcher types:
 |---|---|---|
 | **Author** (watched researchers) | `author.id:A1\|A2\|…` | new work by any of these people |
 | **Topic** | `topics.id:T10215` | anything OpenAlex classifies under this topic |
-| **Search phrase** | `title_and_abstract.search:cognitive warfare` | these words appear in the title or abstract |
+| **Search phrase** | `title_and_abstract.search:"cognitive warfare"` | this **exact phrase** appears in the title or abstract (quoted, so it's not a loose word match) |
 
 For each stream, `radar/openalex.py` sends **one** request to
 `https://api.openalex.org/works` combining:

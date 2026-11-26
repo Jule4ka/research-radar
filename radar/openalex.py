@@ -92,7 +92,11 @@ def fetch_stream(stream, lookback_days: int | None, per_page: int,
     if stream.filter:
         filters.append(stream.filter)
     if stream.search:
-        filters.append(f"title_and_abstract.search:{stream.search}")
+        # Quote the phrase so OpenAlex does an EXACT-phrase match. Unquoted, its
+        # search is a loose, stemmed word match ("influence operations" would hit
+        # any paper with "influences" or "operations"), which both floods the
+        # per-page cap with noise and buries the real hits.
+        filters.append(f'title_and_abstract.search:"{stream.search}"')
 
     params = {
         "filter": ",".join(filters),
